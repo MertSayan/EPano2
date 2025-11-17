@@ -1,0 +1,111 @@
+@model List<EPano2.Models.Video>
+@{
+    ViewData["Title"] = "Video Yönetimi - Admin Panel";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/css/dashboard.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Admin Header -->
+        <div class="admin-header">
+            <h1 class="admin-title">Video Yönetimi</h1>
+            <p class="admin-subtitle">Dijital bilgi panosunda gösterilecek videoları yönetin</p>
+        </div>
+
+        <!-- Admin Navigation -->
+        <nav class="admin-nav">
+            <a href="@Url.Action("Dashboard", "Admin")" class="admin-nav-btn">Dashboard</a>
+            <a href="@Url.Action("Videos", "Admin")" class="admin-nav-btn active">Videolar</a>
+            <a href="@Url.Action("Announcements", "Admin")" class="admin-nav-btn">Duyurular</a>
+            <a href="@Url.Action("Index", "Dashboard")" class="admin-nav-btn" target="_blank">Panoyu Görüntüle</a>
+        </nav>
+
+        <!-- Videos Content -->
+        <div class="admin-content">
+            <div class="content-header">
+                <h2 class="content-title">Video Listesi</h2>
+                <button class="btn-primary btn-add" onclick="showModal('add')">Yeni Video Ekle</button>
+            </div>
+
+            @if (Model.Any())
+            {
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Başlık</th>
+                            <th>URL</th>
+                            <th>Yüklenme Tarihi</th>
+                            <th>Durum</th>
+                            <th>Sıra</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var video in Model.OrderBy(v => v.DisplayOrder))
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@video.Title</strong>
+                                    @if (!string.IsNullOrEmpty(video.Description))
+                                    {
+                                        <br><small class="text-muted">@video.Description</small>
+                                    }
+                                </td>
+                                <td>
+                                    <a href="@video.Url" target="_blank" class="text-primary">Video Linki</a>
+                                </td>
+                                <td>@video.UploadDate.ToString("dd MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"))</td>
+                                <td>
+                                    @if (video.IsActive)
+                                    {
+                                        <span class="badge bg-success">Aktif</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Pasif</span>
+                                    }
+                                </td>
+                                <td>@video.DisplayOrder</td>
+                                <td>
+                                    <button class="btn-secondary btn-edit" data-id="@video.Id">Düzenle</button>
+                                    <button class="btn-danger btn-delete" data-id="@video.Id">Sil</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <h3>Henüz video eklenmemiş</h3>
+                    <p>Dijital bilgi panosunda gösterilecek videoları eklemek için "Yeni Video Ekle" butonuna tıklayın.</p>
+                    <button class="btn-primary btn-add" onclick="showModal('add')">İlk Videoyu Ekle</button>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/dashboard.js"></script>
+    <script>
+        // Initialize admin panel functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAdminPanel();
+        });
+    </script>
+</body>
+</html>
+
+

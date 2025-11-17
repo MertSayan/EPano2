@@ -1,0 +1,122 @@
+@{
+    ViewData["Title"] = "Admin Dashboard - ISUBU Bilgisayar Mühendisliği";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/css/dashboard.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Admin Header -->
+        <div class="admin-header">
+            <h1 class="admin-title">Admin Paneli</h1>
+            <p class="admin-subtitle">ISUBU Bilgisayar Mühendisliği Dijital Bilgi Panosu Yönetimi</p>
+        </div>
+
+        <!-- Admin Navigation -->
+        <nav class="admin-nav">
+            <a href="@Url.Action("Dashboard", "Admin")" class="admin-nav-btn active">Dashboard</a>
+            <a href="@Url.Action("Videos", "Admin")" class="admin-nav-btn">Videolar</a>
+            <a href="@Url.Action("Announcements", "Admin")" class="admin-nav-btn">Duyurular</a>
+            <a href="@Url.Action("Index", "Dashboard")" class="admin-nav-btn" target="_blank">Panoyu Görüntüle</a>
+        </nav>
+
+        <!-- Statistics Cards -->
+        <div class="admin-stats">
+            <div class="stat-card">
+                <div class="stat-number">@ViewBag.TotalVideos</div>
+                <div class="stat-label">Toplam Video</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">@ViewBag.TotalAnnouncements</div>
+                <div class="stat-label">Toplam Duyuru</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">@ViewBag.ActiveVideos</div>
+                <div class="stat-label">Aktif Video</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">@ViewBag.ActiveAnnouncements</div>
+                <div class="stat-label">Aktif Duyuru</div>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="admin-content">
+            <div class="content-header">
+                <h2 class="content-title">Genel Bakış</h2>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>Son Eklenen Videolar</h4>
+                    <div class="recent-items">
+                        <div class="item-card">
+                            <h5>Bilgisayar Mühendisliği Tanıtım</h5>
+                            <p class="text-muted">5 gün önce eklendi</p>
+                        </div>
+                        <div class="item-card">
+                            <h5>Yazılım Geliştirme Süreçleri</h5>
+                            <p class="text-muted">3 gün önce eklendi</p>
+                        </div>
+                        <div class="item-card">
+                            <h5>Veri Yapıları ve Algoritmalar</h5>
+                            <p class="text-muted">1 gün önce eklendi</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <h4>Son Eklenen Duyurular</h4>
+                    <div class="recent-items">
+                        <div class="item-card">
+                            <h5>2024 Bahar Dönemi Final Sınavları</h5>
+                            <p class="text-muted">2 gün önce eklendi</p>
+                        </div>
+                        <div class="item-card">
+                            <h5>Yaz Stajı Başvuruları</h5>
+                            <p class="text-muted">1 gün önce eklendi</p>
+                        </div>
+                        <div class="item-card">
+                            <h5>Bitirme Projesi Sunumları</h5>
+                            <p class="text-muted">Bugün eklendi</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <h4>Sistem Durumu</h4>
+                <div class="system-status">
+                    <div class="status-item">
+                        <span class="status-label">Panel Durumu:</span>
+                        <span class="status-value text-success">Aktif</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Son Güncelleme:</span>
+                        <span class="status-value">@DateTime.Now.ToString("dd MMMM yyyy HH:mm", new System.Globalization.CultureInfo("tr-TR"))</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Toplam Görüntülenme:</span>
+                        <span class="status-value">1,247</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/dashboard.js"></script>
+</body>
+</html>
+
+
