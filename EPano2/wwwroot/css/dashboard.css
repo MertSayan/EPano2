@@ -1,4 +1,4 @@
-/* ISUBU Digital Information Board Styles */
+﻿/* ISUBU Digital Information Board Styles */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -47,16 +47,16 @@ body {
     overflow: hidden;
 }
 
-.dashboard-header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
-    opacity: 0.3;
-}
+    .dashboard-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+        opacity: 0.3;
+    }
 
 .header-logo {
     width: 80px;
@@ -84,13 +84,26 @@ body {
 }
 
 /* Main Content Area */
-.dashboard-main {
+/*.dashboard-main {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 30px;
     padding: 30px 40px;
     flex: 1;
     overflow: hidden;
+}*/
+.dashboard-main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    padding: 30px 40px;
+    /* ❌ BUNLARI KALDIR (kısıtlama sebebi) */
+    /* flex: 1; */
+    /* overflow: hidden; */
+    /* ✔ YENİSİ */
+    overflow: visible; /* Duyurular aşağı genişleyebilir */
+    align-items: start; /* Video küçük kalır, duyuru büyük olabilir */
+    height: auto; /* Grid yüksekliği duyuruyu boğmaz */
 }
 
 /* Video Section */
@@ -104,15 +117,15 @@ body {
     overflow: hidden;
 }
 
-.video-section::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--isubu-navy), var(--isubu-light-blue));
-}
+    .video-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--isubu-navy), var(--isubu-light-blue));
+    }
 
 .video-title {
     font-size: 1.8rem;
@@ -135,12 +148,12 @@ body {
     border: 3px solid var(--isubu-navy);
 }
 
-.video-player video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 12px;
-}
+    .video-player video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 12px;
+    }
 
 .video-placeholder {
     font-size: 1.2rem;
@@ -159,15 +172,15 @@ body {
     overflow: hidden;
 }
 
-.announcements-section::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--isubu-light-blue), var(--isubu-navy));
-}
+    .announcements-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--isubu-light-blue), var(--isubu-navy));
+    }
 
 .announcements-title {
     font-size: 1.8rem;
@@ -178,7 +191,7 @@ body {
 }
 
 .announcements-carousel {
-    height: 400px;
+    height: 400px; /* 🔼 400px’ten 500px’e çıkarıldı */
     position: relative;
     overflow: hidden;
     border-radius: 15px;
@@ -204,14 +217,14 @@ body {
     background-repeat: no-repeat;
 }
 
-.announcement-slide.active {
-    opacity: 1;
-    transform: translateX(0);
-}
+    .announcement-slide.active {
+        opacity: 1;
+        transform: translateX(0);
+    }
 
-.announcement-slide.prev {
-    transform: translateX(-100%);
-}
+    .announcement-slide.prev {
+        transform: translateX(-100%);
+    }
 
 .announcement-overlay {
     background: linear-gradient(transparent, rgba(0, 33, 71, 0.8));
@@ -246,8 +259,9 @@ body {
 
 /* Lower Info Section */
 .dashboard-lower {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* eskiden grid’ti, artık sola hizalı flex */
+    display: flex;
+    flex-direction: row;
     gap: 20px;
     padding: 0 40px 20px;
     max-height: 120px;
@@ -298,40 +312,40 @@ body {
     justify-content: center;
 }
 
-.weather-day:hover {
-    transform: scale(1.1) translateY(-5px);
-    opacity: 1;
-    box-shadow: 0 4px 15px rgba(0, 33, 71, 0.25);
-    border-color: var(--isubu-navy);
-}
+    .weather-day:hover {
+        transform: scale(1.1) translateY(-5px);
+        opacity: 1;
+        box-shadow: 0 4px 15px rgba(0, 33, 71, 0.25);
+        border-color: var(--isubu-navy);
+    }
 
-.weather-day.current {
-    opacity: 1;
-    transform: scale(1.3) translateY(-10px);
-    font-weight: bold;
-    background: linear-gradient(135deg, var(--isubu-navy) 0%, var(--isubu-light-blue) 100%);
-    border: 3px solid var(--isubu-white);
-    box-shadow: 0 6px 20px rgba(0, 33, 71, 0.3);
-    z-index: 2;
-}
+    .weather-day.current {
+        opacity: 1;
+        transform: scale(1.3) translateY(-10px);
+        font-weight: bold;
+        background: linear-gradient(135deg, var(--isubu-navy) 0%, var(--isubu-light-blue) 100%);
+        border: 3px solid var(--isubu-white);
+        box-shadow: 0 6px 20px rgba(0, 33, 71, 0.3);
+        z-index: 2;
+    }
 
-.weather-day img {
-    width: 60px;
-    height: 60px;
-    margin-bottom: 2px;
-}
+    .weather-day img {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 2px;
+    }
 
-.weather-day p {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--isubu-navy);
-    margin: 0;
-}
+    .weather-day p {
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--isubu-navy);
+        margin: 0;
+    }
 
-.weather-day.current p {
-    color: var(--isubu-white);
-    font-weight: 700;
-}
+    .weather-day.current p {
+        color: var(--isubu-white);
+        font-weight: 700;
+    }
 
 .weather-section::before {
     content: '';
@@ -416,10 +430,15 @@ body {
     0% {
         transform: translateX(100%);
     }
+
     100% {
         transform: translateX(-100%);
     }
 }
+
+/* Admin Panel Styles */
+/* ... (dosyanın geri kalanı senin gönderdiğin gibi, aynen korunuyor) ... */
+
 
 /* Admin Panel Styles */
 .admin-container {

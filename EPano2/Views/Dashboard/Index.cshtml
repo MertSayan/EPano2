@@ -1,4 +1,4 @@
-@model EPano2.Models.DashboardViewModel
+@* @model EPano2.Models.DashboardViewModel
 @{
     ViewData["Title"] = "ISUBU Bilgisayar Mühendisliği - Dijital Bilgi Panosu";
     Layout = null;
@@ -164,3 +164,351 @@
     <script src="~/js/dashboard.js"></script>
 </body>
 </html>
+ *@
+
+
+@* @model EPano2.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "ISUBU Bilgisayar Mühendisliği - Dijital Bilgi Panosu";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/css/dashboard.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header Section -->
+        <header class="dashboard-header">
+            <div class="header-logo">ISUBU</div>
+            <div class="header-title">ISUBU Bilgisayar Mühendisliği</div>
+            <div class="header-logo">ISUBU</div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            <!-- Left Column - Video Player -->
+            <section class="video-section fade-in">
+                <h2 class="video-title">Dönecek Olan Videolar</h2>
+                <div class="video-player">
+                    @if (Model.Videos.Any())
+                    {
+                        @foreach (var video in Model.Videos.OrderBy(v => v.DisplayOrder))
+                        {
+                            <video preload="auto" muted>
+                                <source src="@video.Url" type="video/mp4">
+                                Tarayıcınız video oynatmayı desteklemiyor.
+                            </video>
+                        }
+                    }
+                    else
+                    {
+                        <div class="video-placeholder">
+                            <p>Henüz video eklenmemiş</p>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <!-- Right Column - Announcements Carousel -->
+            <section class="announcements-section fade-in">
+                <h2 class="announcements-title">Bölüm Duyuruları</h2>
+                <div class="announcements-carousel">
+                    @if (Model.Announcements.Any())
+                    {
+                        @foreach (var announcement in Model.Announcements.OrderBy(a => a.CreatedDate))
+                        {
+                            <div class="announcement-slide" style="background-image: url('@announcement.PosterImageUrl')">
+                                <div class="announcement-overlay">
+                                    <h3 class="announcement-title">@announcement.Title</h3>
+                                    <p class="announcement-content">@announcement.Content</p>
+                                    <p class="announcement-date">@announcement.CreatedDate</p>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="announcement-slide active" style="background-image: linear-gradient(135deg, var(--isubu-light-gray) 0%, var(--isubu-white) 100%);">
+                            <div class="announcement-overlay">
+                                <h3 class="announcement-title" style="color: var(--isubu-navy);">Duyuru Bulunamadı</h3>
+                                <p class="announcement-content" style="color: var(--text-muted);">Henüz duyuru eklenmemiş.</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </section>
+        </main>
+
+        <!-- Lower Information Area -->
+        <section class="dashboard-lower">
+            <!-- Weather Section -->
+            <div class="weather-section fade-in">
+                <h3 class="weather-title">Günlük Hava Durumu</h3>
+                <div class="weather-today">
+                    <div id="weatherToday"
+                         class="weather-today-content"
+                         style="display:flex;justify-content:center;align-items:center;
+                        gap:10px;color:#000;font-size:28px;font-weight:600;
+                        background:rgba(255,255,255,0.9);border-radius:10px;
+                        padding:10px;min-height:80px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date & Time Section -->
+            <div class="datetime-section fade-in">
+                <h3 class="datetime-title">Tarih ve Saat</h3>
+                <div class="datetime-info" id="datetime-time">--:--:--</div>
+                <div class="datetime-date" id="datetime-date">--</div>
+            </div>
+        </section>
+
+        <!-- Bottom Scrolling Sections -->
+        <footer class="dashboard-footer">
+            <!-- Scrolling Announcements -->
+            <div class="scrolling-announcements">
+                <div class="scrolling-text">
+                    @if (Model.ScrollingAnnouncements.Any())
+                    {
+                        @string.Join(" • ", Model.ScrollingAnnouncements)
+                    }
+                    else
+                    {
+                        <text>Duyuru bulunamadı</text>
+                    }
+                </div>
+            </div>
+
+            <!-- Scrolling Credits -->
+            <div class="scrolling-credits">
+                <div class="scrolling-text-credits">
+                    @if (Model.Credits.Any())
+                    {
+                        @string.Join(" • ", Model.Credits)
+                    }
+                    else
+                    {
+                        <text>Emeği geçenler bilgisi bulunamadı</text>
+                    }
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        async function loadWeatherToday() {
+            try {
+                const res = await fetch('/Home/Weather7', { cache: 'no-store' });
+                const data = await res.json(); // [{ iconUrl, tempC }]
+                const box = document.getElementById('weatherToday');
+                box.innerHTML = '';
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    box.innerHTML = '<div class="wt-temp">--°C</div>';
+                    return;
+                }
+                const { iconUrl, tempC } = data[0];
+                box.innerHTML = `
+                    <img class="wt-icon" src="${iconUrl}" alt="hava">
+                    <div class="wt-temp">${tempC}°C</div>
+                `;
+            } catch (e) {
+                console.error('Weather error', e);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadWeatherToday);
+    </script>
+
+    <script src="~/js/dashboard.js"></script>
+</body>
+</html>
+ *@
+
+
+
+@model EPano2.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "ISUBU Bilgisayar Mühendisliği - Dijital Bilgi Panosu";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/css/dashboard.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header Section -->
+        <header class="dashboard-header">
+            <div class="header-logo">ISUBU</div>
+            <div class="header-title">ISUBU Bilgisayar Mühendisliği</div>
+            <div class="header-logo">ISUBU</div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="dashboard-main">
+            <!-- LEFT COLUMN: Video -->
+            <section class="video-section fade-in">
+                <h2 class="video-title">Dönecek Olan Videolar</h2>
+                <div class="video-player">
+                    @* @if (Model.Videos)
+                    {
+                        
+                            <video preload="auto" muted>
+                                <source src="@video.Url" type="video/mp4">
+                                Tarayıcınız video oynatmayı desteklemiyor.
+                            </video>
+                        
+                    }
+                    else
+                    {
+                        <div class="video-placeholder">
+                            <p>Henüz video eklenmemiş</p>
+                        </div>
+                    } *@
+                    @* <video preload="auto" muted>
+                        <source src="@Model.Videos.YoutubePlaylistUrl" type="video/mp4">
+                        Tarayıcınız video oynatmayı desteklemiyor.
+                    </video> *@
+                    <iframe class="youtube-frame"
+                            src="https://www.youtube.com/embed/@ViewBag.PlaylistId?autoplay=1&mute=1&loop=1&playlist=@ViewBag.PlaylistId"
+                            allow="autoplay; encrypted-media"
+                            allowfullscreen>
+                    </iframe>
+                </div>
+            </section>
+
+            <!-- RIGHT COLUMN: Announcements Carousel -->
+            <section class="announcements-section fade-in">
+                <h2 class="announcements-title">Bölüm Duyuruları</h2>
+                <div class="announcements-carousel">
+                    @if (Model.Announcements.Any())
+                    {
+                        @foreach (var announcement in Model.Announcements.OrderBy(a => a.DisplayOrder))
+                        {
+                            <div class="announcement-slide" style="background-image: url('@announcement.PosterImageUrl')">
+                                <div class="announcement-overlay">
+                                    <h3 class="announcement-title">@announcement.Title</h3>
+                                    <p class="announcement-content">@announcement.Content</p>
+                                    <p class="announcement-date">@announcement.CreatedDate</p>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="announcement-slide active" style="background-image: linear-gradient(135deg, var(--isubu-light-gray) 0%, var(--isubu-white) 100%);">
+                            <div class="announcement-overlay">
+                                <h3 class="announcement-title" style="color: var(--isubu-navy);">Duyuru Bulunamadı</h3>
+                                <p class="announcement-content" style="color: var(--text-muted);">Henüz duyuru eklenmemiş.</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <!-- SECOND ROW, LEFT: Weather + DateTime (sadece video kolonunun altında) -->
+            <section class="dashboard-lower">
+                <!-- Weather Section -->
+                <div class="weather-section fade-in">
+                    <h3 class="weather-title">Günlük Hava Durumu</h3>
+                    <div class="weather-today">
+                        <div id="weatherToday"
+                             class="weather-today-content"
+                             style="display:flex;justify-content:center;align-items:center;
+                                    gap:10px;color:#000;font-size:28px;font-weight:600;
+                                    background:rgba(255,255,255,0.9);border-radius:10px;
+                                    padding:10px;min-height:80px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Date & Time Section -->
+                <div class="datetime-section fade-in">
+                    <h3 class="datetime-title">Tarih ve Saat</h3>
+                    <div class="datetime-info" id="datetime-time">--:--:--</div>
+                    <div class="datetime-date" id="datetime-date">--</div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Scrolling Sections -->
+        <footer class="dashboard-footer">
+            <!-- Scrolling Announcements -->
+            <div class="scrolling-announcements">
+                <div class="scrolling-text">
+                    @if (Model.ScrollingAnnouncements.Any())
+                    {
+                        @string.Join(" • ", Model.ScrollingAnnouncements)
+                    }
+                    else
+                    {
+                        <text>Duyuru bulunamadı</text>
+                    }
+                </div>
+            </div>
+
+            <!-- Scrolling Credits -->
+            <div class="scrolling-credits">
+                <div class="scrolling-text-credits">
+                    @if (Model.Credits.Any())
+                    {
+                        @string.Join(" • ", Model.Credits)
+                    }
+                    else
+                    {
+                        <text>Emeği geçenler bilgisi bulunamadı</text>
+                    }
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        async function loadWeatherToday() {
+            try {
+                const res = await fetch('/Home/Weather7', { cache: 'no-store' });
+                const data = await res.json(); // [{ iconUrl, tempC }]
+                const box = document.getElementById('weatherToday');
+                box.innerHTML = '';
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    box.innerHTML = '<div class="wt-temp">--°C</div>';
+                    return;
+                }
+                const { iconUrl, tempC } = data[0];
+                box.innerHTML = `
+                    <img class="wt-icon" src="${iconUrl}" alt="hava">
+                    <div class="wt-temp">${tempC}°C</div>
+                `;
+            } catch (e) {
+                console.error('Weather error', e);
+            }
+        }
+        document.addEventListener('DOMContentLoaded', loadWeatherToday);
+    </script>
+
+    <script src="~/js/dashboard.js"></script>
+</body>
+</html>
+
