@@ -1,16 +1,40 @@
+using EPano2.Interfaces;
 using EPano2.Models;
+using EPano2.Models.Dtos;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace EPano2.Controllers
 {
     public class DashboardController : Controller
     {
-        public IActionResult Index()
+        private readonly IAnnouncementService _announcementService;
+
+        public DashboardController(IAnnouncementService announcementService)
         {
+            _announcementService = announcementService;
+        }
+        public async Task<IActionResult> Index()
+        {
+            // ---- STATIC PLAYLIST ----
+            var video = new Video
+            {
+                Id = Guid.NewGuid(),
+                YoutubePlaylistUrl = "https://www.youtube.com/watch?v=NPUTdqYUa9A&list=PLui0qrYBvKS-OeLalPILU5SxnG_VGPLQk"
+            };
+
+            // Playlist ID çıkar
+            string playlistId = "";
+            if (video.YoutubePlaylistUrl.Contains("list="))
+                playlistId = video.YoutubePlaylistUrl.Split("list=")[1];
+
+            ViewBag.PlaylistId = playlistId;
+
+            // ---- STATIC VIEWMODEL ----
             var viewModel = new DashboardViewModel
             {
-                Videos = GetMockVideos(),
-                Announcements = GetMockAnnouncements(),
+                Videos = video,
+                Announcements = await GetAnnouncements(),
                 Weather = GetMockWeather(),
                 WeatherForecast = GetMockWeatherForecast(),
                 ScrollingAnnouncements = GetMockScrollingAnnouncements(),
@@ -20,57 +44,36 @@ namespace EPano2.Controllers
             return View(viewModel);
         }
 
-        private List<Video> GetMockVideos()
+        private Video GetMockVideos()
         {
-            return new List<Video>
+            return new Video
             {
-                new Video { Id = 1, Title = "Bilgisayar Mühendisliği Tanıtım", Url = "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4", Description = "Bölümümüzün tanıtım videosu", UploadDate = DateTime.Now.AddDays(-5), DisplayOrder = 1 },
-                new Video { Id = 2, Title = "Yazılım Geliştirme Süreçleri", Url = "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_2mb.mp4", Description = "Yazılım geliştirme metodolojileri", UploadDate = DateTime.Now.AddDays(-3), DisplayOrder = 2 },
-                new Video { Id = 3, Title = "Veri Yapıları ve Algoritmalar", Url = "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_5mb.mp4", Description = "Temel veri yapıları eğitimi", UploadDate = DateTime.Now.AddDays(-1), DisplayOrder = 3 }
+                Id = Guid.NewGuid(),
+                YoutubePlaylistUrl = "https://www.youtube.com/watch?v=NPUTdqYUa9A&list=PLui0qrYBvKS-OeLalPILU5SxnG_VGPLQk"
             };
+            
+            //return new List<Video>
+            //{
+            //    new Video { Id = 1, Title = "Bilgisayar Mühendisliği Tanıtım", Url = "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4", Description = "Bölümümüzün tanıtım videosu", UploadDate = DateTime.Now.AddDays(-5), DisplayOrder = 1 },
+            //    new Video { Id = 2, Title = "Yazılım Geliştirme Süreçleri", Url = "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_2mb.mp4", Description = "Yazılım geliştirme metodolojileri", UploadDate = DateTime.Now.AddDays(-3), DisplayOrder = 2 },
+            //    new Video { Id = 3, Title = "Veri Yapıları ve Algoritmalar", Url = "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_5mb.mp4", Description = "Temel veri yapıları eğitimi", UploadDate = DateTime.Now.AddDays(-1), DisplayOrder = 3 }
+            //};
         }
 
-        private List<Announcement> GetMockAnnouncements()
+        private async Task<List<AnnouncementDto>> GetAnnouncements()
         {
-            return new List<Announcement>
+            var duyurular = await _announcementService.GetAnnouncements();
+
+            var duyuruListesi = duyurular.Select(x => new AnnouncementDto
             {
-                new Announcement { 
-                    Id = 1, 
-                    Title = "2024 Bahar Dönemi Final Sınavları", 
-                    Content = "Final sınavları 15 Haziran tarihinde başlayacaktır. Sınav programı bölüm panosunda ilan edilmiştir.", 
-                    PosterImageUrl = "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&h=400&fit=crop",
-                    CreatedDate = DateTime.Now.AddDays(-2), 
-                    DisplayOrder = 1,
-                    IsPosterStyle = true
-                },
-                new Announcement { 
-                    Id = 2, 
-                    Title = "Yaz Stajı Başvuruları", 
-                    Content = "2024 yaz stajı başvuruları başlamıştır. Son başvuru tarihi 30 Mayıs'tır.", 
-                    PosterImageUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=400&fit=crop",
-                    CreatedDate = DateTime.Now.AddDays(-1), 
-                    DisplayOrder = 2,
-                    IsPosterStyle = true
-                },
-                new Announcement { 
-                    Id = 3, 
-                    Title = "Bitirme Projesi Sunumları", 
-                    Content = "Bitirme projesi sunumları 20-25 Haziran tarihleri arasında yapılacaktır.", 
-                    PosterImageUrl = "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=400&fit=crop",
-                    CreatedDate = DateTime.Now, 
-                    DisplayOrder = 3,
-                    IsPosterStyle = true
-                },
-                new Announcement { 
-                    Id = 4, 
-                    Title = "Yeni Laboratuvar Açılışı", 
-                    Content = "Yapay zeka laboratuvarımız hizmete girmiştir. Öğrencilerimiz randevu alarak kullanabilir.", 
-                    PosterImageUrl = "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=800&h=400&fit=crop",
-                    CreatedDate = DateTime.Now.AddDays(-3), 
-                    DisplayOrder = 4,
-                    IsPosterStyle = true
-                }
-            };
+                ID = x.ID,
+                Title = x.Baslik,
+                Content = x.Icerik,
+                CreatedDate = x.KayitTarihi,
+                PosterImageUrl = x.HaberResim,
+            }).ToList();
+
+            return duyuruListesi;
         }
 
         private Weather GetMockWeather()
