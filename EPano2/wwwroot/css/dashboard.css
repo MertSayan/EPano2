@@ -1,4 +1,4 @@
-﻿/* ISUBU Digital Information Board Styles */
+/* ISUBU Digital Information Board Styles */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -527,15 +527,16 @@ body {
 
 .scrolling-text {
     white-space: nowrap;
-    animation: scroll-left 70s linear infinite;
+    animation: scroll-left 150s linear infinite;
     font-size: 1rem;
     font-weight: 500;
     line-height: 1.2;
+    color: var(--isubu-white);
 }
 
 .scrolling-text-credits {
     white-space: nowrap;
-    animation: scroll-left 25s linear infinite;
+    animation: scroll-left 80s linear infinite;
     font-size: 0.9rem;
     font-weight: 400;
     line-height: 1.2;
@@ -543,7 +544,7 @@ body {
 
 @keyframes scroll-left {
     0% {
-        transform: translateX(100%);
+        transform: translateX(2.5%);
     }
 
     100% {

@@ -31,10 +31,12 @@ namespace EPano2.Controllers
             ViewBag.PlaylistId = playlistId;
 
             // ---- STATIC VIEWMODEL ----
+            var (announcements, news) = await GetAnnouncementsAndNews();
             var viewModel = new DashboardViewModel
             {
                 Videos = video,
-                Announcements = await GetAnnouncements(),
+                Announcements = announcements,
+                News = news,
                 Weather = GetMockWeather(),
                 WeatherForecast = GetMockWeatherForecast(),
                 ScrollingAnnouncements = GetMockScrollingAnnouncements(),
@@ -60,20 +62,37 @@ namespace EPano2.Controllers
             //};
         }
 
-        private async Task<List<AnnouncementDto>> GetAnnouncements()
+        private async Task<(List<AnnouncementDto> Announcements, List<AnnouncementDto> News)> GetAnnouncementsAndNews()
         {
+            // Fetch announcements (haber=false) and news (haber=true) separately
             var duyurular = await _announcementService.GetAnnouncements();
+            var haberler = await _announcementService.GetNews();
 
-            var duyuruListesi = duyurular.Select(x => new AnnouncementDto
+            // Convert to DTOs - Keep announcements separate
+            var announcementList = duyurular.Select(x => new AnnouncementDto
             {
                 ID = x.ID,
                 Title = x.Baslik,
                 Content = x.Icerik,
                 CreatedDate = x.KayitTarihi,
                 PosterImageUrl = x.HaberResim,
-            }).ToList();
+                DisplayOrder = x.ID,
+                Haber = false
+            }).OrderBy(x => x.ID).ToList();
 
-            return duyuruListesi;
+            // Convert to DTOs - Keep news separate
+            var newsList = haberler.Select(x => new AnnouncementDto
+            {
+                ID = x.ID,
+                Title = x.Baslik,
+                Content = x.Icerik,
+                CreatedDate = x.KayitTarihi,
+                PosterImageUrl = x.HaberResim,
+                DisplayOrder = x.ID,
+                Haber = true
+            }).OrderBy(x => x.ID).ToList();
+
+            return (announcementList, newsList);
         }
 
         private Weather GetMockWeather()
@@ -194,6 +213,21 @@ namespace EPano2.Controllers
             {
                 "Emeği Geçenler: Barış Köse, Ahmet Yılmaz, Ayşe Demir, Mehmet Kaya, Fatma Özkan, Can Yıldız, Zeynep Arslan, Emre Çelik"
             };
+        }
+
+        // API endpoint for scrolling announcements - returns only titles
+        [HttpGet]
+        public async Task<IActionResult> GetScrollingAnnouncements()
+        {
+            var (announcements, news) = await GetAnnouncementsAndNews();
+            
+            var result = new
+            {
+                duyurular = announcements.Select(x => new { title = x.Title }).ToList(),
+                haberler = news.Select(x => new { title = x.Title }).ToList()
+            };
+            
+            return Json(result);
         }
     }
 }

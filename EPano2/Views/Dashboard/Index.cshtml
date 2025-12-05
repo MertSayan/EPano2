@@ -61,15 +61,16 @@
             <div class="right-column">
 
                 <section class="announcements-section fade-in">
-                    <h2 class="announcements-title">Bölüm Duyuruları</h2>
+                    <h2 class="announcements-title">Duyurular - Haberler</h2>
 
                     <!-- SLIDER -->
                     <div class="announcements-carousel">
+                        @* Render Announcements (haber=false) separately *@
                         @if (Model.Announcements.Any())
                         {
-                            foreach (var ann in Model.Announcements.OrderBy(a => a.DisplayOrder))
+                            foreach (var ann in Model.Announcements.OrderBy(a => a.ID))
                             {
-                                <div class="announcement-slide" style="background-image:url('@ann.PosterImageUrl')">
+                                <div class="announcement-slide" data-haber="false" style="background-image:url('@ann.PosterImageUrl')">
                                     <div class="announcement-overlay">
                                         <h3 class="announcement-title">@ann.Title</h3>
                                         <p class="announcement-content">@ann.Content</p>
@@ -77,7 +78,23 @@
                                 </div>
                             }
                         }
-                        else
+                        
+                        @* Render News (haber=true) separately *@
+                        @if (Model.News.Any())
+                        {
+                            foreach (var news in Model.News.OrderBy(a => a.ID))
+                            {
+                                <div class="announcement-slide" data-haber="true" style="background-image:url('@news.PosterImageUrl')">
+                                    <div class="announcement-overlay">
+                                        <h3 class="announcement-title">@news.Title</h3>
+                                        <p class="announcement-content">@news.Content</p>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        
+                        @* Show empty state only if both lists are empty *@
+                        @if (!Model.Announcements.Any() && !Model.News.Any())
                         {
                             <div class="announcement-slide active">
                                 <div class="announcement-overlay">
@@ -95,16 +112,7 @@
         <!-- FOOTER -->
         <footer class="dashboard-footer">
             <div class="scrolling-announcements">
-                <div class="scrolling-text">
-                    @if (Model.ScrollingAnnouncements.Any())
-                    {
-                        @string.Join(" • ", Model.ScrollingAnnouncements)
-                    }
-                    else
-                    {
-                        <text>Duyuru bulunamadı</text>
-                    }
-                </div>
+                <div class="scrolling-text"></div>
             </div>
             <div class="scrolling-credits">
                 <div class="scrolling-text-credits">

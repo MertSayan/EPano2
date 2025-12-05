@@ -3,8 +3,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize all dashboard components
     initializeDateTime();
     initializeVideoPlayer();
-    initializeAnnouncementsCarousel();
-    initializeScrollingText();
+    
+    initializeAnnouncementsCarousel(); // Slider extracts data first
+    
+    // Initialize ticker AFTER carousel so it can use the same extracted data
+    setTimeout(function() {
+        initializeIndependentTicker(); // Independent ticker that loops between announcements and news
+    }, 200);
+    initializeScrollingText(); // Only handles credits scrolling
     initializeWeatherAPI();
     
     // Add fade-in animation to main elements
@@ -91,51 +97,266 @@ function initializeVideoPlayer() {
 
 // Announcements Carousel
 function initializeAnnouncementsCarousel() {
-    const slides = document.querySelectorAll('.announcement-slide');
+    const carousel = document.querySelector('.announcements-carousel');
+    if (!carousel) return;
+    
+    const allSlides = Array.from(document.querySelectorAll('.announcement-slide'));
+    if (allSlides.length === 0) return;
+    
+    // Extract and store all announcement data from existing slides
+    const allAnnouncementsData = allSlides.map((slide) => {
+        const titleEl = slide.querySelector('.announcement-title');
+        const contentEl = slide.querySelector('.announcement-content');
+        const haberValue = slide.getAttribute('data-haber');
+        const backgroundImage = slide.style.backgroundImage;
+        
+        return {
+            haber: haberValue === 'true' || haberValue === 'True' || haberValue === true,
+            title: titleEl ? titleEl.textContent.trim() : '',
+            content: contentEl ? contentEl.textContent.trim() : '',
+            posterImageUrl: backgroundImage ? backgroundImage.replace(/^url\(["']?|["']?\)$/g, '') : ''
+        };
+    });
+    
+    // Filter announcements by haber status - Keep them completely separate
+    // Announcements only (haber = false) - maintain original order (already sorted by ID from backend)
+    const duyurular = allAnnouncementsData.filter(x => x.haber === false);
+    
+    // News only (haber = true) - maintain original order (already sorted by ID from backend)
+    const haberler = allAnnouncementsData.filter(x => x.haber === true);
+    
+    // Make arrays globally available for ticker to use
+    window.announcementData = {
+        duyurular: duyurular.filter(x => x.title && x.title.length > 0),
+        haberler: haberler.filter(x => x.title && x.title.length > 0)
+    };
+    
+    // Current mode state: showNews = false → announcements, showNews = true → news
+    let showNews = false; // Start with duyurular (haber = false)
     let currentSlideIndex = 0;
+    let slideInterval = null;
+    let currentSlides = []; // For slide rotation only
     
-    if (slides.length === 0) return;
-    
-    // Show first slide
-    slides[0].classList.add('active');
+    // Function to rebuild slider DOM with filtered items
+    // showNewsMode = false → shows ONLY announcements (duyurular list)
+    // showNewsMode = true → shows ONLY news (haberler list)
+    function updateSlider(showNewsMode) {
+        // Update global mode state to keep scrolling text in sync
+        showNews = showNewsMode;
+        
+        // Stop existing slide rotation
+        if (slideInterval) {
+            clearInterval(slideInterval);
+            slideInterval = null;
+        }
+        
+        // Get the appropriate list based on mode - STRICT SEPARATION
+        // When showNewsMode = false: use ONLY duyurular list (announcements)
+        // When showNewsMode = true: use ONLY haberler list (news)
+        const filteredItems = showNewsMode ? haberler : duyurular;
+        
+        // Clear existing slides from DOM
+        carousel.innerHTML = '';
+        
+        if (filteredItems.length === 0) {
+            // Show empty state
+            const emptySlide = document.createElement('div');
+            emptySlide.className = 'announcement-slide active';
+            emptySlide.innerHTML = `
+                <div class="announcement-overlay">
+                    <h3 class="announcement-title">${showNewsMode ? 'Haber Bulunamadı' : 'Duyuru Bulunamadı'}</h3>
+                </div>
+            `;
+            // Set data-haber for empty state
+            emptySlide.setAttribute('data-haber', showNewsMode ? 'true' : 'false');
+            carousel.appendChild(emptySlide);
+            currentSlides = [emptySlide];
+        } else {
+            // Rebuild slides dynamically
+            currentSlides = filteredItems.map((item, index) => {
+                const slide = document.createElement('div');
+                slide.className = 'announcement-slide';
+                if (index === 0) {
+                    slide.classList.add('active');
+                }
+                
+                const bgImage = item.posterImageUrl ? `background-image:url('${item.posterImageUrl}')` : '';
+                slide.setAttribute('style', bgImage);
+                slide.setAttribute('data-haber', item.haber.toString());
+                
+                slide.innerHTML = `
+                    <div class="announcement-overlay">
+                        <h3 class="announcement-title">${item.title}</h3>
+                        ${item.content ? `<p class="announcement-content">${item.content}</p>` : ''}
+                    </div>
+                `;
+                
+                carousel.appendChild(slide);
+                return slide;
+            });
+        }
+        
+        // Reset slide index
+        currentSlideIndex = 0;
+        
+        // Restart slide rotation - 10 seconds per slide
+        slideInterval = setInterval(switchToNextSlide, 10000);
+    }
     
     function switchToNextSlide() {
+        if (currentSlides.length === 0) return;
+        
+        // Store previous index to detect when we complete a cycle
+        const previousIndex = currentSlideIndex;
+        
         // Remove active class from current slide
-        slides[currentSlideIndex].classList.remove('active');
-        slides[currentSlideIndex].classList.add('prev');
+        currentSlides[currentSlideIndex].classList.remove('active');
+        currentSlides[currentSlideIndex].classList.add('prev');
         
         // Move to next slide
-        currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+        currentSlideIndex = (currentSlideIndex + 1) % currentSlides.length;
+        
+        // Check if we've completed a full cycle (went from last slide to first)
+        // This happens when previousIndex was the last slide and now we're at 0
+        if (previousIndex === currentSlides.length - 1 && currentSlideIndex === 0 && currentSlides.length > 1) {
+            // We've completed one full cycle, switch to the other list
+            const otherList = showNews ? duyurular : haberler;
+            if (otherList.length > 0) {
+                // Switch to the other list after animation
+                setTimeout(() => {
+                    updateSlider(!showNews);
+                }, 500);
+                return;
+            }
+        }
+        
+        // If only one slide in current list, check if we should switch
+        if (currentSlides.length === 1) {
+            const otherList = showNews ? duyurular : haberler;
+            if (otherList.length > 0) {
+                // Switch to the other list
+                setTimeout(() => {
+                    updateSlider(!showNews);
+                }, 500);
+                return;
+            }
+        }
         
         // Show next slide
         setTimeout(() => {
-            slides.forEach(slide => slide.classList.remove('prev'));
-            slides[currentSlideIndex].classList.add('active');
+            currentSlides.forEach(slide => slide.classList.remove('prev'));
+            currentSlides[currentSlideIndex].classList.add('active');
         }, 500);
     }
     
-    // Switch slides every 8 seconds
-    setInterval(switchToNextSlide, 8000);
+    // Initialize: Show duyurular first (haber = false)
+    updateSlider(false);
 }
 
-// Scrolling Text Animation
-function initializeScrollingText() {
-    const scrollingElements = document.querySelectorAll('.scrolling-text, .scrolling-text-credits');
+// Independent Bottom Ticker - Fetches data from API and creates continuous flow
+function initializeIndependentTicker() {
+    const scrollingTextEl = document.querySelector('.scrolling-text');
+    if (!scrollingTextEl) {
+        return;
+    }
     
-    scrollingElements.forEach(element => {
-        // Duplicate content for seamless scrolling
-        const content = element.textContent;
-        element.innerHTML = content + ' • ' + content + ' • ' + content;
+    // Fetch data from API
+    fetch('/Dashboard/GetScrollingAnnouncements')
+        .then(res => res.json())
+        .then(data => {
+            const duyurular = (data.duyurular || []).filter(x => x.title && x.title.length > 0);
+            const haberler = (data.haberler || []).filter(x => x.title && x.title.length > 0);
+            
+            // Check if both lists are empty
+            if (duyurular.length === 0 && haberler.length === 0) {
+                scrollingTextEl.innerHTML = 'Duyuru bulunamadı • Duyuru bulunamadı • Duyuru bulunamadı';
+                return;
+            }
+            
+            // Build continuous flow: Duyurular -> Haberler -> Duyurular -> Haberler...
+            let combinedText = '';
+            
+            if (duyurular.length > 0) {
+                const duyuruTitles = duyurular.map(item => item.title);
+                combinedText += 'Duyurular: ' + duyuruTitles.join(' • ');
+            }
+            
+            if (haberler.length > 0) {
+                if (combinedText.length > 0) {
+                    combinedText += ' • ';
+                }
+                const haberTitles = haberler.map(item => item.title);
+                combinedText += 'Haberler: ' + haberTitles.join(' • ');
+            }
+            
+            // If only one type exists, just use that
+            if (duyurular.length === 0 && haberler.length > 0) {
+                const haberTitles = haberler.map(item => item.title);
+                combinedText = 'Haberler: ' + haberTitles.join(' • ');
+            } else if (haberler.length === 0 && duyurular.length > 0) {
+                const duyuruTitles = duyurular.map(item => item.title);
+                combinedText = 'Duyurular: ' + duyuruTitles.join(' • ');
+            }
+            
+            // Create seamless loop by duplicating the content multiple times
+            const duplicatedContent = combinedText + ' • ' + combinedText + ' • ' + combinedText + ' • ' + combinedText;
+            scrollingTextEl.innerHTML = duplicatedContent;
+            
+            // Reset and restart animation to ensure it starts from the beginning
+            scrollingTextEl.style.animation = 'none';
+            // Force reflow to ensure style reset is applied
+            void scrollingTextEl.offsetHeight;
+            scrollingTextEl.style.animation = 'scroll-left 150s linear infinite';
+            scrollingTextEl.style.animationPlayState = 'running';
+            
+            // Initialize hover pause functionality
+            scrollingTextEl.addEventListener('mouseenter', function() {
+                this.style.animationPlayState = 'paused';
+            });
+            
+            scrollingTextEl.addEventListener('mouseleave', function() {
+                this.style.animationPlayState = 'running';
+            });
+        })
+        .catch(err => {
+            console.error('Error fetching scrolling announcements:', err);
+            scrollingTextEl.innerHTML = 'Duyuru bulunamadı • Duyuru bulunamadı • Duyuru bulunamadı';
+        });
+}
+
+// Scrolling Text Animation - Only handles credits scrolling
+function initializeScrollingText() {
+    // Only initialize credits scrolling, announcements ticker is handled independently
+    const scrollingCredits = document.querySelector('.scrolling-text-credits');
+    
+    if (scrollingCredits) {
+        // Duplicate content many times for truly seamless continuous scrolling (like upper text)
+        const content = scrollingCredits.textContent.trim();
+        // Create continuous loop by duplicating content many times - ensure no gaps
+        // Duplicate enough times so animation never shows a gap (same approach as upper text)
+        // Create a very long string to ensure seamless scrolling
+        let duplicatedContent = '';
+        for (let i = 0; i < 20; i++) {
+            duplicatedContent += content + ' • ';
+        }
+        scrollingCredits.innerHTML = duplicatedContent;
+        
+        // Reset and restart animation to ensure seamless loop
+        scrollingCredits.style.animation = 'none';
+        // Force reflow to ensure style reset is applied
+        void scrollingCredits.offsetHeight;
+        scrollingCredits.style.animation = 'scroll-left 80s linear infinite';
+        scrollingCredits.style.animationPlayState = 'running';
         
         // Add hover pause functionality
-        element.addEventListener('mouseenter', function() {
+        scrollingCredits.addEventListener('mouseenter', function() {
             this.style.animationPlayState = 'paused';
         });
         
-        element.addEventListener('mouseleave', function() {
+        scrollingCredits.addEventListener('mouseleave', function() {
             this.style.animationPlayState = 'running';
         });
-    });
+    }
 }
 
 // OpenWeatherMap API Integration
