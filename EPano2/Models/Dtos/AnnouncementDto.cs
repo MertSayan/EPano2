@@ -10,5 +10,8 @@
 
         // Ekranı kontrol etmek için
         public int DisplayOrder { get; set; }
+        
+        // Duyuru/Haber ayrımı için
+        public bool Haber { get; set; }
     }
 }
