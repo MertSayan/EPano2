@@ -22,7 +22,8 @@ body {
     font-family: 'Poppins', sans-serif;
     background-color: var(--isubu-white);
     color: var(--text-dark);
-    overflow: hidden; /* Prevent scrolling on full-screen display */
+    /* E-pano tam ekran çalışacağı için dikey scroll istemiyoruz */
+    overflow: hidden;
     height: 100vh;
 }
 
@@ -38,14 +39,14 @@ body {
 .dashboard-header {
     background: linear-gradient(90deg, var(--isubu-navy) 0%, var(--isubu-light-blue) 50%, var(--isubu-navy) 100%);
     color: var(--isubu-white);
-    padding: 15px 40px;
+    padding: 10px 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     box-shadow: 0 4px 20px rgba(0, 33, 71, 0.3);
     position: relative;
     overflow: hidden;
-    min-height: 90px;
+    min-height: 80px;
 }
 
 .header-logo-img {
@@ -120,18 +121,20 @@ body {
 .dashboard-main {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 30px;
-    padding: 25px 40px;
-    overflow: visible;
-    align-items: end;
-    min-height: calc(100vh - 200px);
-    margin-bottom: 40px;
+    gap: 20px;
+    padding: 18px 40px 16px;
+    /* Ana içerik, header ile footer arasında kalan alanı kullansın */
+    overflow: hidden;
+    align-items: start;
 }
 
 .left-column {
     display: flex;
     flex-direction: column;
     gap: 15px;
+    /* Sol kolonu, sağdaki duyuru kolonu ile aynı satır yüksekliğinde tut */
+    justify-content: flex-start;
+    height: 100%;
 }
 
 .right-column {
@@ -159,6 +162,10 @@ body {
     border: 2px solid var(--isubu-light-gray);
     position: relative;
     overflow: hidden;
+    /* Kolon yüksekliği arttıkça video kartı da aşağı doğru büyüsün */
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
 }
 
     .video-section::before {
@@ -181,7 +188,9 @@ body {
 
 .video-player {
     width: 100%;
-    height: 320px;
+    /* Min yüksekliği koru, ama ekstra yüksekliği kullanarak büyümesini sağla */
+    flex: 1 1 auto;
+    min-height: 260px;
     background: var(--isubu-light-gray);
     border-radius: 15px;
     display: flex;
@@ -252,7 +261,7 @@ body {
 }
 
 .announcements-carousel {
-    height: 320px;
+    height: 260px;
     position: relative;
     overflow: hidden;
     border-radius: 15px;
@@ -332,7 +341,7 @@ body {
 .weather-section, .datetime-section {
     background: var(--isubu-white);
     border-radius: 15px;
-    padding: 20px 15px;
+    padding: 16px 12px;
     box-shadow: 0 4px 20px rgba(0, 33, 71, 0.1);
     border: 2px solid var(--isubu-light-gray);
     text-align: center;
@@ -343,7 +352,7 @@ body {
     justify-content: center;
     align-items: center;
     flex: 1;
-    min-height: 160px;
+    min-height: 110px;
     width: 100%;
     max-width: none;
 }
@@ -501,26 +510,26 @@ body {
     position: relative;
     display: flex;
     flex-direction: column;
-    margin-top: 20px;
+    margin-top: 8px;
 }
 
 .scrolling-announcements {
     background: var(--isubu-navy);
-    padding: 8px 0;
+    padding: 6px 0;
     border-bottom: 2px solid var(--isubu-light-blue);
     overflow: hidden;
     position: relative;
-    height: 32px;
+    height: 28px;
     display: flex;
     align-items: center;
 }
 
 .scrolling-credits {
     background: var(--isubu-light-blue);
-    padding: 6px 0;
+    padding: 4px 0;
     overflow: hidden;
     position: relative;
-    height: 28px;
+    height: 24px;
     display: flex;
     align-items: center;
 }
@@ -742,20 +751,21 @@ body {
         background: rgba(0, 33, 71, 0.05);
     }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
+/* Responsive Design - Sadece gerçek mobil cihazlar için */
+@media (max-width: 480px) {
     .dashboard-main {
         grid-template-columns: 1fr;
         gap: 20px;
+        padding: 20px;
+        align-items: start;
+        min-height: auto;
+        margin-bottom: 20px;
     }
 
-    .dashboard-lower {
-        grid-template-columns: 1fr;
-        gap: 20px;
+    .right-column {
+        height: auto;
     }
-}
 
-@media (max-width: 768px) {
     .dashboard-header {
         padding: 15px 20px;
         flex-direction: column;
@@ -766,8 +776,37 @@ body {
         font-size: 1.8rem;
     }
 
-    .dashboard-main {
-        padding: 20px;
+    .info-wrapper {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .weather-section, .datetime-section {
+        min-height: 120px;
+        padding: 15px 10px;
+    }
+
+    .weather-title, .datetime-title {
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+    }
+
+    .weather-today-content {
+        font-size: 1.2rem;
+        gap: 8px;
+    }
+
+    .weather-today-content img {
+        max-width: 40px;
+        max-height: 40px;
+    }
+
+    .datetime-info {
+        font-size: 1.2rem;
+    }
+
+    .datetime-date {
+        font-size: 0.8rem;
     }
 
     .video-player {
@@ -784,6 +823,79 @@ body {
 
     .admin-stats {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 360px) {
+    .dashboard-header {
+        padding: 10px 15px;
+        min-height: 70px;
+    }
+
+    .header-logo-img {
+        height: 50px;
+        max-width: 60px;
+    }
+
+    .header-title {
+        font-size: 1.4rem;
+    }
+
+    .dashboard-main {
+        padding: 15px;
+        gap: 15px;
+    }
+
+    .info-wrapper {
+        gap: 12px;
+    }
+
+    .weather-section, .datetime-section {
+        min-height: 100px;
+        padding: 12px 8px;
+        border-radius: 12px;
+    }
+
+    .weather-title, .datetime-title {
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+    }
+
+    .weather-today-content {
+        font-size: 1rem;
+        gap: 6px;
+    }
+
+    .weather-today-content img {
+        max-width: 35px;
+        max-height: 35px;
+    }
+
+    .datetime-info {
+        font-size: 1rem;
+        margin-bottom: 3px;
+    }
+
+    .datetime-date {
+        font-size: 0.75rem;
+    }
+
+    .video-section, .announcements-section {
+        padding: 15px;
+        border-radius: 15px;
+    }
+
+    .video-title, .announcements-title {
+        font-size: 1.3rem;
+        margin-bottom: 12px;
+    }
+
+    .video-player {
+        height: 200px;
+    }
+
+    .announcements-carousel {
+        height: 200px;
     }
 }
 
