@@ -278,13 +278,21 @@ namespace EPano2.Controllers
         [HttpGet]
         public async Task<IActionResult> GetScrollingAnnouncements()
         {
-            // Önce admin'in özel kayan yazısı var mı bak
-            var ticker = await _dbContext.TickerConfigs.FirstOrDefaultAsync(t => t.IsActive);
-            if (ticker != null && !string.IsNullOrWhiteSpace(ticker.CustomText))
+            // Önce aktif ticker item'ları kontrol et
+            var activeTickerItems = await _dbContext.TickerItems
+                .Where(t => t.IsActive)
+                .OrderBy(t => t.DisplayOrder)
+                .ThenBy(t => t.CreatedAt)
+                .ToListAsync();
+
+            if (activeTickerItems.Any())
             {
-                return Json(new { customText = ticker.CustomText });
+                // Aktif ticker'ları birleştir
+                var combinedText = string.Join(" • ", activeTickerItems.Select(t => t.Text));
+                return Json(new { customText = combinedText });
             }
 
+            // Aktif ticker yoksa API'den gelen duyuru ve haberleri kullan
             var (announcements, news) = await GetAnnouncementsAndNews();
             
             var result = new

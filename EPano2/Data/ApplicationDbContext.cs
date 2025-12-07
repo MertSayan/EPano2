@@ -14,6 +14,7 @@ namespace EPano2.Data
         public DbSet<VideoConfig> VideoConfigs => Set<VideoConfig>();
         public DbSet<ExtraVideoLink> ExtraVideoLinks => Set<ExtraVideoLink>();
         public DbSet<TickerConfig> TickerConfigs => Set<TickerConfig>();
+        public DbSet<TickerItem> TickerItems => Set<TickerItem>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

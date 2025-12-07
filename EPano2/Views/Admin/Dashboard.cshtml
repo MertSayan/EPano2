@@ -12,162 +12,364 @@
     <title>@ViewData["Title"]</title>
     <link rel="stylesheet" href="~/css/dashboard.css" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 </head>
-<body>
-    <div class="admin-container">
-        <!-- Admin Header -->
-        <div class="admin-header">
-            <h1 class="admin-title">Admin Paneli</h1>
-            <p class="admin-subtitle">ISUBU Bilgisayar Mühendisliği Dijital Bilgi Panosu Yönetimi</p>
-        </div>
-
-        <!-- Admin Navigation -->
-        <nav class="admin-nav">
-            <a href="@Url.Action("Dashboard", "Admin")" class="admin-nav-btn active">Dashboard</a>
-            <a href="@Url.Action("Videos", "Admin")" class="admin-nav-btn">Videolar</a>
-            <a href="@Url.Action("Announcements", "Admin")" class="admin-nav-btn">Duyurular</a>
-            <a href="@Url.Action("Index", "Dashboard")" class="admin-nav-btn" target="_blank">Panoyu Görüntüle</a>
-        </nav>
-
-        <!-- Statistics Cards -->
-        <div class="admin-stats">
-            <div class="stat-card">
-                <div class="stat-number">@ViewBag.TotalVideos</div>
-                <div class="stat-label">Toplam Video</div>
+<body class="admin-body">
+    <div class="admin-wrapper">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <i class="bi bi-shield-check"></i>
+                    <span>Admin Panel</span>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-number">@ViewBag.TotalAnnouncements</div>
-                <div class="stat-label">Toplam Duyuru</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">@ViewBag.ActiveVideos</div>
-                <div class="stat-label">Aktif Video</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">@ViewBag.ActiveAnnouncements</div>
-                <div class="stat-label">Aktif Duyuru</div>
-            </div>
-        </div>
+            <nav class="sidebar-nav">
+                <a href="@Url.Action("Dashboard", "Admin")" class="nav-item active">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="@Url.Action("Index", "Dashboard")" class="nav-item" target="_blank">
+                    <i class="bi bi-display"></i>
+                    <span>Panoyu Görüntüle</span>
+                </a>
+                <a href="@Url.Action("Logout", "Admin")" class="nav-item nav-item-logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Çıkış Yap</span>
+                </a>
+            </nav>
+        </aside>
 
-        <!-- Dashboard Content -->
-        <div class="admin-content">
-            <div class="content-header">
-                <h2 class="content-title">Video ve Kayan Yazı Ayarları</h2>
-            </div>
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Top Header -->
+            <header class="admin-topbar">
+                <div class="topbar-left">
+                    <h1 class="page-title">Dashboard</h1>
+                    <p class="page-subtitle">Dijital Bilgi Panosu Yönetimi</p>
+                </div>
+                <div class="topbar-right">
+                    <a href="@Url.Action("Index", "Dashboard")" class="btn-view-board" target="_blank">
+                        <i class="bi bi-eye"></i>
+                        <span>Panoyu Görüntüle</span>
+                    </a>
+                </div>
+            </header>
 
-            <div class="row">
-                <div class="col-md-7">
-                    <h4>Video Ayarları</h4>
-
-                    <div class="mb-4">
-                        <h5>Varsayılan Video Linki</h5>
-                        <form asp-action="SaveDefaultVideo" method="post" class="row g-2">
-                            <div class="col-12">
-                                <input type="url"
-                                       name="defaultVideoUrl"
-                                       class="form-control"
-                                       placeholder="https://www.youtube.com/watch?v=..."
-                                       value="@Model.DefaultVideoUrl" />
+            <!-- Content Area -->
+            <div class="admin-content-area">
+                <!-- Video Management Card -->
+                <div class="admin-card">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <i class="bi bi-play-circle"></i>
+                            <h2>Video Yönetimi</h2>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- Default Video Section -->
+                        <div class="section-block">
+                            <div class="section-title">
+                                <i class="bi bi-film"></i>
+                                <span>Varsayılan Video</span>
                             </div>
-                            <div class="col-6 mt-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="useDefault" value="true" id="useDefault"
-                                           @(Model.IsDefaultActive ? "checked" : "") />
-                                    <label class="form-check-label" for="useDefault">
-                                        Varsayılan linki aktif et (ekstra linkler olsa bile sadece bu dönsün)
-                                    </label>
+                            <form asp-action="SaveDefaultVideo" method="post" class="modern-form">
+                                @Html.AntiForgeryToken()
+                                <div class="form-group">
+                                    <label>YouTube Video URL</label>
+                                    <div class="input-group">
+                                        <span class="input-icon"><i class="bi bi-link-45deg"></i></span>
+                                        <input type="url"
+                                               name="defaultVideoUrl"
+                                               class="form-control-modern"
+                                               placeholder="https://www.youtube.com/watch?v=..."
+                                               value="@Model.DefaultVideoUrl" />
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-6 text-end mt-2">
-                                <button type="submit" class="btn btn-primary btn-sm">Kaydet</button>
-                            </div>
-                        </form>
-                    </div>
+                                <div class="form-group">
+                                    <div class="checkbox-modern">
+                                        <input type="checkbox" name="useDefault" value="true" id="useDefault" @(Model.IsDefaultActive ? "checked" : "") />
+                                        <label for="useDefault">
+                                            <span class="checkmark"></span>
+                                            Varsayılan videoyu aktif et (ekstra linkler olsa bile sadece bu dönsün)
+                                        </label>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-modern btn-primary-modern">
+                                    <i class="bi bi-check-circle"></i>
+                                    <span>Kaydet</span>
+                                </button>
+                            </form>
+                        </div>
 
-                    <div class="mb-4">
-                        <h5>Ekstra Video Linkleri (sırayla dönecek)</h5>
+                        <!-- Extra Videos Section -->
+                        <div class="section-block">
+                            <div class="section-title">
+                                <i class="bi bi-collection-play"></i>
+                                <span>Ekstra Video Linkleri</span>
+                                <span class="badge-modern">@(Model.ExtraVideoLinks?.Count ?? 0)</span>
+                            </div>
+                            <form asp-action="AddExtraVideoLink" method="post" class="modern-form">
+                                @Html.AntiForgeryToken()
+                                <div class="form-row">
+                                    <div class="form-group flex-grow">
+                                        <label>Yeni Video URL</label>
+                                        <div class="input-group">
+                                            <span class="input-icon"><i class="bi bi-link-45deg"></i></span>
+                                            <input type="url"
+                                                   name="url"
+                                                   class="form-control-modern"
+                                                   placeholder="YouTube URL" />
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="width: 120px;">
+                                        <label>Sıra</label>
+                                        <input type="number"
+                                               name="displayOrder"
+                                               class="form-control-modern"
+                                               placeholder="1" />
+                                    </div>
+                                    <div class="form-group" style="width: auto; align-self: flex-end;">
+                                        <button type="submit" class="btn-modern btn-success-modern">
+                                            <i class="bi bi-plus-circle"></i>
+                                            <span>Ekle</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
 
-                        <form asp-action="AddExtraVideoLink" method="post" class="row g-2 mb-3">
-                            <div class="col-9">
-                                <input type="url"
-                                       name="url"
-                                       class="form-control"
-                                       placeholder="Yeni video linki (YouTube URL)" />
-                            </div>
-                            <div class="col-3">
-                                <input type="number"
-                                       name="displayOrder"
-                                       class="form-control"
-                                       placeholder="Sıra" />
-                            </div>
-                            <div class="col-12 text-end mt-2">
-                                <button type="submit" class="btn btn-success btn-sm">Ekle</button>
-                            </div>
-                        </form>
-
-                        @if (Model.ExtraVideoLinks != null && Model.ExtraVideoLinks.Any())
-                        {
-                            <table class="table table-sm table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>URL</th>
-                                        <th style="width:70px;">Sıra</th>
-                                        <th style="width:80px;"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                @foreach (var link in Model.ExtraVideoLinks)
-                                {
-                                    <tr>
-                                        <td>@link.Url</td>
-                                        <td>@link.DisplayOrder</td>
-                                        <td class="text-end">
-                                            <form asp-action="DeleteExtraVideoLink" method="post">
-                                                <input type="hidden" name="id" value="@link.Id" />
-                                                <button type="submit" class="btn btn-danger btn-sm">Sil</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                }
-                                </tbody>
-                            </table>
-                        }
-                        else
-                        {
-                            <p class="text-muted">Henüz ekstra video linki eklenmemiş.</p>
-                        }
+                            @if (Model.ExtraVideoLinks != null && Model.ExtraVideoLinks.Any())
+                            {
+                                <div class="table-modern-wrapper">
+                                    <table class="table-modern">
+                                        <thead>
+                                            <tr>
+                                                <th>Sıra</th>
+                                                <th>Video URL</th>
+                                                <th>İşlemler</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var link in Model.ExtraVideoLinks)
+                                            {
+                                                <tr>
+                                                    <td><span class="badge-order">@link.DisplayOrder</span></td>
+                                                    <td>
+                                                        <div class="url-cell">
+                                                            <i class="bi bi-youtube"></i>
+                                                            <span>@link.Url</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <form asp-action="DeleteExtraVideoLink" method="post" class="inline-form">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="id" value="@link.Id" />
+                                                            <button type="submit" class="btn-icon-danger" onclick="return confirm('Bu videoyu silmek istediğinize emin misiniz?');">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="empty-state-modern">
+                                    <i class="bi bi-inbox"></i>
+                                    <p>Henüz ekstra video linki eklenmemiş.</p>
+                                </div>
+                            }
+                        </div>
                     </div>
                 </div>
 
-                <div class="col-md-5">
-                    <h4>Kayan Yazı (Ticker) Ayarı</h4>
-                    <form asp-action="SaveTickerConfig" method="post">
-                        <div class="mb-3">
-                            <label class="form-label">Özel Kayan Yazı Metni</label>
-                            <textarea name="customText"
-                                      rows="4"
-                                      class="form-control"
-                                      placeholder="Boş bırakırsanız API'den gelen duyuru ve haber başlıkları akmaya devam eder.">@Model.TickerCustomText</textarea>
+                <!-- Ticker Management Card -->
+                <div class="admin-card">
+                    <div class="card-header">
+                        <div class="card-header-left">
+                            <i class="bi bi-textarea-t"></i>
+                            <h2>Kayan Yazı Yönetimi</h2>
                         </div>
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" name="isActive" value="true" id="tickerActive" @(Model.TickerIsActive ? "checked" : "") />
-                            <label class="form-check-label" for="tickerActive">
-                                Aktif
-                            </label>
+                    </div>
+                    <div class="card-body">
+                        <!-- Yeni Ticker Ekleme Formu -->
+                        <div class="section-block">
+                            <div class="section-title">
+                                <i class="bi bi-plus-circle"></i>
+                                <span>Yeni Ticker Yazısı Ekle</span>
+                            </div>
+                            <form asp-action="AddTickerItem" method="post" class="modern-form">
+                                @Html.AntiForgeryToken()
+                                <div class="form-row">
+                                    <div class="form-group flex-grow">
+                                        <label>Ticker Metni</label>
+                                        <div class="input-group">
+                                            <span class="input-icon"><i class="bi bi-chat-text"></i></span>
+                                            <input type="text"
+                                                   name="text"
+                                                   class="form-control-modern"
+                                                   placeholder="Örn: Ticker metni giriniz"
+                                                   required />
+                                        </div>
+                                    </div>
+                                    <div class="form-group" style="width: 120px;">
+                                        <label>Sıra</label>
+                                        <input type="number"
+                                               name="displayOrder"
+                                               class="form-control-modern"
+                                               placeholder="1" />
+                                    </div>
+                                    <div class="form-group" style="width: auto; align-self: flex-end;">
+                                        <button type="submit" class="btn-modern btn-success-modern">
+                                            <i class="bi bi-plus-circle"></i>
+                                            <span>Ekle</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="form-hint">Aktif olan ticker yazıları kırmızı renkte ve kalın yazı tipiyle görüntülenecektir. API'den gelen duyurular yerine aktif ticker'lar gösterilir.</small>
+                            </form>
                         </div>
-                        <div class="text-end">
-                            <button type="submit" class="btn btn-primary btn-sm">Kayan Yazıyı Kaydet</button>
+
+                        <!-- Mevcut Ticker Listesi -->
+                        <div class="section-block">
+                            <div class="section-title">
+                                <i class="bi bi-list-ul"></i>
+                                <span>Mevcut Ticker Yazıları</span>
+                                <span class="badge-modern">@(Model.TickerItems?.Count ?? 0)</span>
+                            </div>
+
+                            @if (Model.TickerItems != null && Model.TickerItems.Any())
+                            {
+                                <div class="table-modern-wrapper">
+                                    <table class="table-modern">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 60px;">Sıra</th>
+                                                <th>Ticker Metni</th>
+                                                <th style="width: 120px;">Durum</th>
+                                                <th style="width: 100px;">İşlemler</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in Model.TickerItems)
+                                            {
+                                                <tr>
+                                                    <td><span class="badge-order">@item.DisplayOrder</span></td>
+                                                    <td>
+                                                        <div class="url-cell">
+                                                            <i class="bi bi-text-left"></i>
+                                                            <span>@item.Text</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <form asp-action="UpdateTickerItem" method="post" class="inline-form">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="id" value="@item.Id" />
+                                                            <div class="checkbox-modern" style="margin: 0;">
+                                                                <input type="checkbox" 
+                                                                       name="isActive" 
+                                                                       value="true" 
+                                                                       id="ticker_@item.Id"
+                                                                       @(item.IsActive ? "checked" : "")
+                                                                       onchange="this.form.submit()" />
+                                                                <label for="ticker_@item.Id">
+                                                                    <span class="checkmark"></span>
+                                                                    <span style="font-size: 0.85rem;">@(item.IsActive ? "Aktif" : "Pasif")</span>
+                                                                </label>
+                                                            </div>
+                                                        </form>
+                                                    </td>
+                                                    <td>
+                                                        <form asp-action="DeleteTickerItem" method="post" class="inline-form">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="id" value="@item.Id" />
+                                                            <button type="submit" class="btn-icon-danger" onclick="return confirm('Bu ticker yazısını silmek istediğinize emin misiniz?');">
+                                                                <i class="bi bi-trash"></i>
+                                                            </button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="empty-state-modern">
+                                    <i class="bi bi-inbox"></i>
+                                    <p>Henüz ticker yazısı eklenmemiş.</p>
+                                </div>
+                            }
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
+
+    <!-- Success/Error Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="toast-notification toast-success">
+            <i class="bi bi-check-circle-fill"></i>
+            <span>@TempData["SuccessMessage"]</span>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="toast-notification toast-error">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <span>@TempData["ErrorMessage"]</span>
+        </div>
+    }
 
     <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/dashboard.js"></script>
+    <script>
+        // Toast notification auto-hide
+        setTimeout(function() {
+            document.querySelectorAll('.toast-notification').forEach(function(toast) {
+                toast.style.opacity = '0';
+                setTimeout(function() { toast.remove(); }, 300);
+            });
+        }, 3000);
+
+        // Form submit edildikten sonra input alanlarını temizle
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ekstra Video Linki Ekleme Formu
+            const addVideoForm = document.querySelector('form[action*="AddExtraVideoLink"]');
+            if (addVideoForm) {
+                addVideoForm.addEventListener('submit', function() {
+                    // Form submit edildikten hemen sonra input'ları temizle
+                    setTimeout(function() {
+                        const urlInput = addVideoForm.querySelector('input[name="url"]');
+                        const orderInput = addVideoForm.querySelector('input[name="displayOrder"]');
+                        if (urlInput) urlInput.value = '';
+                        if (orderInput) orderInput.value = '';
+                    }, 50);
+                });
+            }
+
+            // Ticker Ekleme Formu
+            const addTickerForm = document.querySelector('form[action*="AddTickerItem"]');
+            if (addTickerForm) {
+                addTickerForm.addEventListener('submit', function() {
+                    // Form submit edildikten hemen sonra input'ları temizle
+                    setTimeout(function() {
+                        const textInput = addTickerForm.querySelector('input[name="text"]');
+                        const orderInput = addTickerForm.querySelector('input[name="displayOrder"]');
+                        if (textInput) textInput.value = '';
+                        if (orderInput) orderInput.value = '';
+                    }, 50);
+                });
+            }
+        });
+    </script>
 </body>
 </html>
 

@@ -42,13 +42,10 @@ namespace EPano2.Controllers
                 await _dbContext.SaveChangesAsync();
             }
 
-            var tickerConfig = await _dbContext.TickerConfigs.FirstOrDefaultAsync();
-            if (tickerConfig == null)
-            {
-                tickerConfig = new TickerConfig();
-                _dbContext.TickerConfigs.Add(tickerConfig);
-                await _dbContext.SaveChangesAsync();
-            }
+            var tickerItems = await _dbContext.TickerItems
+                .OrderBy(x => x.DisplayOrder)
+                .ThenBy(x => x.CreatedAt)
+                .ToListAsync();
 
             var vm = new AdminDashboardViewModel
             {
@@ -57,8 +54,7 @@ namespace EPano2.Controllers
                 ExtraVideoLinks = videoConfig.ExtraVideoLinks
                     .OrderBy(x => x.DisplayOrder)
                     .ToList(),
-                TickerCustomText = tickerConfig.CustomText,
-                TickerIsActive = tickerConfig.IsActive
+                TickerItems = tickerItems
             };
 
             return View(vm);
@@ -129,7 +125,7 @@ namespace EPano2.Controllers
             }
 
             await _dbContext.SaveChangesAsync();
-            TempData["VideoMessage"] = "Varsayılan video linki kaydedildi.";
+            TempData["SuccessMessage"] = "Varsayılan video linki başarıyla kaydedildi.";
             return RedirectToAction("Dashboard");
         }
 
@@ -139,7 +135,7 @@ namespace EPano2.Controllers
         {
             if (string.IsNullOrWhiteSpace(url))
             {
-                TempData["VideoError"] = "Video linki boş olamaz.";
+                TempData["ErrorMessage"] = "Video linki boş olamaz.";
                 return RedirectToAction("Dashboard");
             }
 
@@ -165,7 +161,7 @@ namespace EPano2.Controllers
             });
 
             await _dbContext.SaveChangesAsync();
-            TempData["VideoMessage"] = "Ekstra video linki eklendi.";
+            TempData["SuccessMessage"] = "Ekstra video linki başarıyla eklendi.";
             return RedirectToAction("Dashboard");
         }
 
@@ -178,33 +174,83 @@ namespace EPano2.Controllers
             {
                 _dbContext.ExtraVideoLinks.Remove(link);
                 await _dbContext.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Video linki başarıyla silindi.";
             }
-
-            TempData["VideoMessage"] = "Video linki silindi.";
-            return RedirectToAction("Dashboard");
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SaveTickerConfig(string? customText, bool isActive)
-        {
-            var ticker = await _dbContext.TickerConfigs.FirstOrDefaultAsync() ?? new TickerConfig();
-
-            ticker.CustomText = string.IsNullOrWhiteSpace(customText) ? null : customText.Trim();
-            ticker.IsActive = isActive;
-
-            if (ticker.Id == 0)
+            else
             {
-                _dbContext.TickerConfigs.Add(ticker);
+                TempData["ErrorMessage"] = "Video linki bulunamadı.";
             }
 
-            await _dbContext.SaveChangesAsync();
-            TempData["TickerMessage"] = "Kayan yazı ayarı kaydedildi.";
             return RedirectToAction("Dashboard");
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddTickerItem(string text, int? displayOrder)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                TempData["ErrorMessage"] = "Ticker metni boş olamaz.";
+                return RedirectToAction("Dashboard");
+            }
+
+            int order = displayOrder ?? (_dbContext.TickerItems.Any()
+                ? _dbContext.TickerItems.Max(x => x.DisplayOrder) + 1
+                : 1);
+
+            var tickerItem = new TickerItem
+            {
+                Text = text.Trim(),
+                IsActive = true,
+                DisplayOrder = order,
+                CreatedAt = DateTime.Now
+            };
+
+            _dbContext.TickerItems.Add(tickerItem);
+            await _dbContext.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Ticker yazısı başarıyla eklendi.";
+            return RedirectToAction("Dashboard");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateTickerItem(int id, bool isActive)
+        {
+            var tickerItem = await _dbContext.TickerItems.FindAsync(id);
+            if (tickerItem == null)
+            {
+                TempData["ErrorMessage"] = "Ticker yazısı bulunamadı.";
+                return RedirectToAction("Dashboard");
+            }
+
+            tickerItem.IsActive = isActive;
+            await _dbContext.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Ticker yazısı başarıyla güncellendi.";
+            return RedirectToAction("Dashboard");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteTickerItem(int id)
+        {
+            var tickerItem = await _dbContext.TickerItems.FindAsync(id);
+            if (tickerItem == null)
+            {
+                TempData["ErrorMessage"] = "Ticker yazısı bulunamadı.";
+                return RedirectToAction("Dashboard");
+            }
+
+            _dbContext.TickerItems.Remove(tickerItem);
+            await _dbContext.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Ticker yazısı başarıyla silindi.";
+            return RedirectToAction("Dashboard");
+        }
+
+        [HttpGet]
+        [HttpPost]
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);

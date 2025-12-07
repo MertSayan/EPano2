@@ -11,8 +11,7 @@ namespace EPano2.Models
         public bool IsDefaultActive { get; set; }
         public List<ExtraVideoLink> ExtraVideoLinks { get; set; } = new List<ExtraVideoLink>();
 
-        public string? TickerCustomText { get; set; }
-        public bool TickerIsActive { get; set; } = true;
+        public List<TickerItem> TickerItems { get; set; } = new List<TickerItem>();
     }
 }
 
