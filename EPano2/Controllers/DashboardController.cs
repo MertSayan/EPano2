@@ -1,7 +1,10 @@
+using EPano2.Data;
 using EPano2.Interfaces;
 using EPano2.Models;
 using EPano2.Models.Dtos;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System.Threading.Tasks;
 
 namespace EPano2.Controllers
@@ -9,32 +12,67 @@ namespace EPano2.Controllers
     public class DashboardController : Controller
     {
         private readonly IAnnouncementService _announcementService;
+        private readonly ApplicationDbContext _dbContext;
 
-        public DashboardController(IAnnouncementService announcementService)
+        public DashboardController(IAnnouncementService announcementService, ApplicationDbContext dbContext)
         {
             _announcementService = announcementService;
+            _dbContext = dbContext;
         }
         public async Task<IActionResult> Index()
         {
-            // ---- STATIC PLAYLIST ----
-            var video = new Video
+            // ---- VIDEO CONFIG (Default + Extra Links) ----
+            var videoConfig = await _dbContext.VideoConfigs
+                .Include(v => v.ExtraVideoLinks)
+                .FirstOrDefaultAsync();
+
+            var videoEmbedUrls = new List<string>();
+
+            if (videoConfig != null)
             {
-                Id = Guid.NewGuid(),
-                YoutubePlaylistUrl = "https://www.youtube.com/watch?v=NPUTdqYUa9A&list=PLui0qrYBvKS-OeLalPILU5SxnG_VGPLQk"
-            };
+                // Eğer varsayılan aktifse, sadece onu kullan
+                if (videoConfig.IsDefaultActive && !string.IsNullOrWhiteSpace(videoConfig.DefaultVideoUrl))
+                {
+                    var embed = ToYoutubeEmbedUrl(videoConfig.DefaultVideoUrl);
+                    if (!string.IsNullOrWhiteSpace(embed))
+                        videoEmbedUrls.Add(embed);
+                }
+                else
+                {
+                    // Önce aktif ekstra linkleri sıraya göre al
+                    var activeExtras = videoConfig.ExtraVideoLinks
+                        .Where(x => x.IsActive)
+                        .OrderBy(x => x.DisplayOrder)
+                        .Select(x => x.Url)
+                        .ToList();
 
-            // Playlist ID çıkar
-            string playlistId = "";
-            if (video.YoutubePlaylistUrl.Contains("list="))
-                playlistId = video.YoutubePlaylistUrl.Split("list=")[1];
+                    if (activeExtras.Any())
+                    {
+                        foreach (var url in activeExtras)
+                        {
+                            var embed = ToYoutubeEmbedUrl(url);
+                            if (!string.IsNullOrWhiteSpace(embed))
+                                videoEmbedUrls.Add(embed);
+                        }
+                    }
+                    else if (!string.IsNullOrWhiteSpace(videoConfig.DefaultVideoUrl))
+                    {
+                        var embed = ToYoutubeEmbedUrl(videoConfig.DefaultVideoUrl);
+                        if (!string.IsNullOrWhiteSpace(embed))
+                            videoEmbedUrls.Add(embed);
+                    }
+                }
+            }
 
-            ViewBag.PlaylistId = playlistId;
+            // JS'te kullanmak için JSON olarak da gönder
+            ViewBag.VideoEmbedJson = JsonConvert.SerializeObject(videoEmbedUrls);
 
-            // ---- STATIC VIEWMODEL ----
+            // ---- VIEWMODEL ----
             var (announcements, news) = await GetAnnouncementsAndNews();
             var viewModel = new DashboardViewModel
             {
-                Videos = video,
+                Videos = new Video(),
+                VideoEmbedUrls = videoEmbedUrls,
                 Announcements = announcements,
                 News = news,
                 Weather = GetMockWeather(),
@@ -46,20 +84,41 @@ namespace EPano2.Controllers
             return View(viewModel);
         }
 
-        private Video GetMockVideos()
+        private string? ToYoutubeEmbedUrl(string? url)
         {
-            return new Video
+            if (string.IsNullOrWhiteSpace(url))
+                return null;
+
+            try
             {
-                Id = Guid.NewGuid(),
-                YoutubePlaylistUrl = "https://www.youtube.com/watch?v=NPUTdqYUa9A&list=PLui0qrYBvKS-OeLalPILU5SxnG_VGPLQk"
-            };
-            
-            //return new List<Video>
-            //{
-            //    new Video { Id = 1, Title = "Bilgisayar Mühendisliği Tanıtım", Url = "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4", Description = "Bölümümüzün tanıtım videosu", UploadDate = DateTime.Now.AddDays(-5), DisplayOrder = 1 },
-            //    new Video { Id = 2, Title = "Yazılım Geliştirme Süreçleri", Url = "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_2mb.mp4", Description = "Yazılım geliştirme metodolojileri", UploadDate = DateTime.Now.AddDays(-3), DisplayOrder = 2 },
-            //    new Video { Id = 3, Title = "Veri Yapıları ve Algoritmalar", Url = "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_5mb.mp4", Description = "Temel veri yapıları eğitimi", UploadDate = DateTime.Now.AddDays(-1), DisplayOrder = 3 }
-            //};
+                var trimmed = url.Trim();
+
+                // v= parametresinden ID çek
+                if (trimmed.Contains("v="))
+                {
+                    var part = trimmed.Split("v=")[1];
+                    var ampIndex = part.IndexOf('&');
+                    var id = ampIndex >= 0 ? part[..ampIndex] : part;
+                    // Tek videoyu embed ediyoruz, döngüyü kendi JS mantığımız yapıyor
+                    return $"https://www.youtube.com/embed/{id}?autoplay=1&mute=1";
+                }
+
+                // youtu.be kısa linkleri
+                var marker = "youtu.be/";
+                if (trimmed.Contains(marker))
+                {
+                    var part = trimmed.Split(marker)[1];
+                    var qIndex = part.IndexOfAny(new[] { '?', '&' });
+                    var id = qIndex >= 0 ? part[..qIndex] : part;
+                    return $"https://www.youtube.com/embed/{id}?autoplay=1&mute=1";
+                }
+
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private async Task<(List<AnnouncementDto> Announcements, List<AnnouncementDto> News)> GetAnnouncementsAndNews()
@@ -219,6 +278,13 @@ namespace EPano2.Controllers
         [HttpGet]
         public async Task<IActionResult> GetScrollingAnnouncements()
         {
+            // Önce admin'in özel kayan yazısı var mı bak
+            var ticker = await _dbContext.TickerConfigs.FirstOrDefaultAsync(t => t.IsActive);
+            if (ticker != null && !string.IsNullOrWhiteSpace(ticker.CustomText))
+            {
+                return Json(new { customText = ticker.CustomText });
+            }
+
             var (announcements, news) = await GetAnnouncementsAndNews();
             
             var result = new

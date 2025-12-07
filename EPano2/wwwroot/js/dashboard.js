@@ -49,50 +49,37 @@ function initializeDateTime() {
     setInterval(updateDateTime, 1000);
 }
 
-// Video Player with Auto-rotation
+// Video Player with Auto-rotation (YouTube iframe)
 function initializeVideoPlayer() {
-    const videos = document.querySelectorAll('.video-player video');
-    let currentVideoIndex = 0;
-    
-    if (videos.length === 0) return;
-    
-    // Hide all videos except the first one
-    videos.forEach((video, index) => {
-        if (index === 0) {
-            video.style.display = 'block';
-            video.classList.add('active');
-        } else {
-            video.style.display = 'none';
-        }
-    });
-    
-    function switchToNextVideo() {
-        // Hide current video
-        videos[currentVideoIndex].style.display = 'none';
-        videos[currentVideoIndex].classList.remove('active');
-        
-        // Move to next video
-        currentVideoIndex = (currentVideoIndex + 1) % videos.length;
-        
-        // Show next video
-        videos[currentVideoIndex].style.display = 'block';
-        videos[currentVideoIndex].classList.add('active');
-        
-        // Play the video
-        videos[currentVideoIndex].play().catch(e => {
-            console.log('Video autoplay prevented:', e);
-        });
+    const frame = document.querySelector('.video-player .youtube-frame');
+    const urls = (window.videoEmbedUrls || []).slice();
+
+    if (!frame || urls.length === 0) {
+        return;
     }
-    
-    // Switch videos every 30 seconds
-    setInterval(switchToNextVideo, 30000);
-    
-    // Handle video end event
-    videos.forEach(video => {
-        video.addEventListener('ended', function() {
-            setTimeout(switchToNextVideo, 2000); // Wait 2 seconds before switching
-        });
-    });
+
+    let currentIndex = 0;
+
+    function setSrc() {
+        const url = urls[currentIndex];
+        console.log('Switching video to:', url);
+        frame.src = url;
+    }
+
+    // Eğer view tarafında ilk src ayarlanmadıysa buradan set edelim
+    setSrc();
+
+    if (urls.length === 1) {
+        return; // Tek video varsa döngüye gerek yok
+    }
+
+    function switchToNextVideo() {
+        currentIndex = (currentIndex + 1) % urls.length;
+        setSrc();
+    }
+
+    // Her 20 saniyede bir videoyu değiştir (gerekirse artırılabilir)
+    setInterval(switchToNextVideo, 20000);
 }
 
 // Announcements Carousel
@@ -264,6 +251,36 @@ function initializeIndependentTicker() {
     fetch('/Dashboard/GetScrollingAnnouncements')
         .then(res => res.json())
         .then(data => {
+            // Admin özel bir kayan yazı girdiyse onu kullan
+            if (data.customText && data.customText.length > 0) {
+                const content = data.customText;
+                let duplicated = '';
+                for (let i = 0; i < 8; i++) {
+                    duplicated += content + ' • ';
+                }
+                scrollingTextEl.innerHTML = duplicated;
+
+                // Özel yazı kırmızı ve biraz daha belirgin olsun
+                scrollingTextEl.style.color = '#ff4d4d';
+                scrollingTextEl.style.fontWeight = '700';
+
+                // Reset animation
+                scrollingTextEl.style.animation = 'none';
+                void scrollingTextEl.offsetHeight;
+                // Custom text biraz daha hızlı aksın diye süreyi düşürüyoruz
+                scrollingTextEl.style.animation = 'scroll-left 80s linear infinite';
+                scrollingTextEl.style.animationPlayState = 'running';
+
+                scrollingTextEl.addEventListener('mouseenter', function () {
+                    this.style.animationPlayState = 'paused';
+                });
+
+                scrollingTextEl.addEventListener('mouseleave', function () {
+                    this.style.animationPlayState = 'running';
+                });
+                return;
+            }
+
             const duyurular = (data.duyurular || []).filter(x => x.title && x.title.length > 0);
             const haberler = (data.haberler || []).filter(x => x.title && x.title.length > 0);
             

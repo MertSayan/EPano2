@@ -1,3 +1,4 @@
+@model EPano2.Models.AdminDashboardViewModel
 @{
     ViewData["Title"] = "Admin Dashboard - ISUBU Bilgisayar Mühendisliği";
     Layout = null;
@@ -51,62 +52,113 @@
         <!-- Dashboard Content -->
         <div class="admin-content">
             <div class="content-header">
-                <h2 class="content-title">Genel Bakış</h2>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <h4>Son Eklenen Videolar</h4>
-                    <div class="recent-items">
-                        <div class="item-card">
-                            <h5>Bilgisayar Mühendisliği Tanıtım</h5>
-                            <p class="text-muted">5 gün önce eklendi</p>
-                        </div>
-                        <div class="item-card">
-                            <h5>Yazılım Geliştirme Süreçleri</h5>
-                            <p class="text-muted">3 gün önce eklendi</p>
-                        </div>
-                        <div class="item-card">
-                            <h5>Veri Yapıları ve Algoritmalar</h5>
-                            <p class="text-muted">1 gün önce eklendi</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-6">
-                    <h4>Son Eklenen Duyurular</h4>
-                    <div class="recent-items">
-                        <div class="item-card">
-                            <h5>2024 Bahar Dönemi Final Sınavları</h5>
-                            <p class="text-muted">2 gün önce eklendi</p>
-                        </div>
-                        <div class="item-card">
-                            <h5>Yaz Stajı Başvuruları</h5>
-                            <p class="text-muted">1 gün önce eklendi</p>
-                        </div>
-                        <div class="item-card">
-                            <h5>Bitirme Projesi Sunumları</h5>
-                            <p class="text-muted">Bugün eklendi</p>
-                        </div>
-                    </div>
-                </div>
+                <h2 class="content-title">Video ve Kayan Yazı Ayarları</h2>
             </div>
 
-            <div class="mt-4">
-                <h4>Sistem Durumu</h4>
-                <div class="system-status">
-                    <div class="status-item">
-                        <span class="status-label">Panel Durumu:</span>
-                        <span class="status-value text-success">Aktif</span>
+            <div class="row">
+                <div class="col-md-7">
+                    <h4>Video Ayarları</h4>
+
+                    <div class="mb-4">
+                        <h5>Varsayılan Video Linki</h5>
+                        <form asp-action="SaveDefaultVideo" method="post" class="row g-2">
+                            <div class="col-12">
+                                <input type="url"
+                                       name="defaultVideoUrl"
+                                       class="form-control"
+                                       placeholder="https://www.youtube.com/watch?v=..."
+                                       value="@Model.DefaultVideoUrl" />
+                            </div>
+                            <div class="col-6 mt-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="useDefault" value="true" id="useDefault"
+                                           @(Model.IsDefaultActive ? "checked" : "") />
+                                    <label class="form-check-label" for="useDefault">
+                                        Varsayılan linki aktif et (ekstra linkler olsa bile sadece bu dönsün)
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-6 text-end mt-2">
+                                <button type="submit" class="btn btn-primary btn-sm">Kaydet</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="status-item">
-                        <span class="status-label">Son Güncelleme:</span>
-                        <span class="status-value">@DateTime.Now.ToString("dd MMMM yyyy HH:mm", new System.Globalization.CultureInfo("tr-TR"))</span>
+
+                    <div class="mb-4">
+                        <h5>Ekstra Video Linkleri (sırayla dönecek)</h5>
+
+                        <form asp-action="AddExtraVideoLink" method="post" class="row g-2 mb-3">
+                            <div class="col-9">
+                                <input type="url"
+                                       name="url"
+                                       class="form-control"
+                                       placeholder="Yeni video linki (YouTube URL)" />
+                            </div>
+                            <div class="col-3">
+                                <input type="number"
+                                       name="displayOrder"
+                                       class="form-control"
+                                       placeholder="Sıra" />
+                            </div>
+                            <div class="col-12 text-end mt-2">
+                                <button type="submit" class="btn btn-success btn-sm">Ekle</button>
+                            </div>
+                        </form>
+
+                        @if (Model.ExtraVideoLinks != null && Model.ExtraVideoLinks.Any())
+                        {
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>URL</th>
+                                        <th style="width:70px;">Sıra</th>
+                                        <th style="width:80px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                @foreach (var link in Model.ExtraVideoLinks)
+                                {
+                                    <tr>
+                                        <td>@link.Url</td>
+                                        <td>@link.DisplayOrder</td>
+                                        <td class="text-end">
+                                            <form asp-action="DeleteExtraVideoLink" method="post">
+                                                <input type="hidden" name="id" value="@link.Id" />
+                                                <button type="submit" class="btn btn-danger btn-sm">Sil</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <p class="text-muted">Henüz ekstra video linki eklenmemiş.</p>
+                        }
                     </div>
-                    <div class="status-item">
-                        <span class="status-label">Toplam Görüntülenme:</span>
-                        <span class="status-value">1,247</span>
-                    </div>
+                </div>
+
+                <div class="col-md-5">
+                    <h4>Kayan Yazı (Ticker) Ayarı</h4>
+                    <form asp-action="SaveTickerConfig" method="post">
+                        <div class="mb-3">
+                            <label class="form-label">Özel Kayan Yazı Metni</label>
+                            <textarea name="customText"
+                                      rows="4"
+                                      class="form-control"
+                                      placeholder="Boş bırakırsanız API'den gelen duyuru ve haber başlıkları akmaya devam eder.">@Model.TickerCustomText</textarea>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="isActive" value="true" id="tickerActive" @(Model.TickerIsActive ? "checked" : "") />
+                            <label class="form-check-label" for="tickerActive">
+                                Aktif
+                            </label>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary btn-sm">Kayan Yazıyı Kaydet</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

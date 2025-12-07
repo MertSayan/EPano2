@@ -1,7 +1,9 @@
 @model EPano2.Models.DashboardViewModel
+@using Newtonsoft.Json
 @{
     ViewData["Title"] = "ISUBU Bilgisayar Mühendisliği - Dijital Bilgi Panosu";
     Layout = null;
+    var videoEmbedJson = ViewBag.VideoEmbedJson as string ?? "[]";
 }
 
 <!DOCTYPE html>
@@ -33,11 +35,21 @@
                 <section class="video-section fade-in">
                     <h2 class="video-title">Dönecek Olan Videolar</h2>
                     <div class="video-player">
-                        <iframe class="youtube-frame"
-                                src="https://www.youtube.com/embed/@ViewBag.PlaylistId?autoplay=1&mute=1&loop=1&playlist=@ViewBag.PlaylistId"
-                                allow="autoplay; encrypted-media"
-                                allowfullscreen>
-                        </iframe>
+                        @if (Model.VideoEmbedUrls != null && Model.VideoEmbedUrls.Any())
+                        {
+                            <iframe id="mainVideoFrame"
+                                    class="youtube-frame"
+                                    src="@Model.VideoEmbedUrls.First()"
+                                    allow="autoplay; encrypted-media"
+                                    allowfullscreen>
+                            </iframe>
+                        }
+                        else
+                        {
+                            <div class="video-placeholder">
+                                Video bulunamadı
+                            </div>
+                        }
                     </div>
                 </section>
 
@@ -126,6 +138,11 @@
     <!-- SCRIPTS -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Sunucudan gelen video embed URL listesi
+        window.videoEmbedUrls = @Html.Raw(videoEmbedJson);
+    </script>
 
     <script>
         async function loadWeatherToday() {

@@ -28,10 +28,40 @@ namespace EPano2.Controllers
             return RedirectToAction("Dashboard");
         }
 
-
-        public IActionResult Dashboard()
+        public async Task<IActionResult> Dashboard()
         {
-            return View();
+            // Video config tek kayıt mantığıyla kullanılıyor
+            var videoConfig = await _dbContext.VideoConfigs
+                .Include(v => v.ExtraVideoLinks)
+                .FirstOrDefaultAsync();
+
+            if (videoConfig == null)
+            {
+                videoConfig = new VideoConfig();
+                _dbContext.VideoConfigs.Add(videoConfig);
+                await _dbContext.SaveChangesAsync();
+            }
+
+            var tickerConfig = await _dbContext.TickerConfigs.FirstOrDefaultAsync();
+            if (tickerConfig == null)
+            {
+                tickerConfig = new TickerConfig();
+                _dbContext.TickerConfigs.Add(tickerConfig);
+                await _dbContext.SaveChangesAsync();
+            }
+
+            var vm = new AdminDashboardViewModel
+            {
+                DefaultVideoUrl = videoConfig.DefaultVideoUrl,
+                IsDefaultActive = videoConfig.IsDefaultActive,
+                ExtraVideoLinks = videoConfig.ExtraVideoLinks
+                    .OrderBy(x => x.DisplayOrder)
+                    .ToList(),
+                TickerCustomText = tickerConfig.CustomText,
+                TickerIsActive = tickerConfig.IsActive
+            };
+
+            return View(vm);
         }
 
         // GET: /Login
@@ -75,6 +105,101 @@ namespace EPano2.Controllers
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 new ClaimsPrincipal(claimsIdentity));
 
+            return RedirectToAction("Dashboard");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveDefaultVideo(string? defaultVideoUrl, bool useDefault = false)
+        {
+            var config = await _dbContext.VideoConfigs
+                .Include(v => v.ExtraVideoLinks)
+                .FirstOrDefaultAsync() ?? new VideoConfig();
+
+            config.DefaultVideoUrl = string.IsNullOrWhiteSpace(defaultVideoUrl)
+                ? null
+                : defaultVideoUrl.Trim();
+
+            // Varsayılan ancak geçerli bir URL varsa aktif edilebilsin
+            config.IsDefaultActive = !string.IsNullOrWhiteSpace(config.DefaultVideoUrl) && useDefault;
+
+            if (config.Id == 0)
+            {
+                _dbContext.VideoConfigs.Add(config);
+            }
+
+            await _dbContext.SaveChangesAsync();
+            TempData["VideoMessage"] = "Varsayılan video linki kaydedildi.";
+            return RedirectToAction("Dashboard");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddExtraVideoLink(string url, int? displayOrder)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                TempData["VideoError"] = "Video linki boş olamaz.";
+                return RedirectToAction("Dashboard");
+            }
+
+            var config = await _dbContext.VideoConfigs
+                .Include(v => v.ExtraVideoLinks)
+                .FirstOrDefaultAsync() ?? new VideoConfig();
+
+            if (config.Id == 0)
+            {
+                _dbContext.VideoConfigs.Add(config);
+                await _dbContext.SaveChangesAsync();
+            }
+
+            int order = displayOrder ?? (config.ExtraVideoLinks.Any()
+                ? config.ExtraVideoLinks.Max(x => x.DisplayOrder) + 1
+                : 1);
+
+            config.ExtraVideoLinks.Add(new ExtraVideoLink
+            {
+                Url = url.Trim(),
+                DisplayOrder = order,
+                IsActive = true
+            });
+
+            await _dbContext.SaveChangesAsync();
+            TempData["VideoMessage"] = "Ekstra video linki eklendi.";
+            return RedirectToAction("Dashboard");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteExtraVideoLink(int id)
+        {
+            var link = await _dbContext.ExtraVideoLinks.FindAsync(id);
+            if (link != null)
+            {
+                _dbContext.ExtraVideoLinks.Remove(link);
+                await _dbContext.SaveChangesAsync();
+            }
+
+            TempData["VideoMessage"] = "Video linki silindi.";
+            return RedirectToAction("Dashboard");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveTickerConfig(string? customText, bool isActive)
+        {
+            var ticker = await _dbContext.TickerConfigs.FirstOrDefaultAsync() ?? new TickerConfig();
+
+            ticker.CustomText = string.IsNullOrWhiteSpace(customText) ? null : customText.Trim();
+            ticker.IsActive = isActive;
+
+            if (ticker.Id == 0)
+            {
+                _dbContext.TickerConfigs.Add(ticker);
+            }
+
+            await _dbContext.SaveChangesAsync();
+            TempData["TickerMessage"] = "Kayan yazı ayarı kaydedildi.";
             return RedirectToAction("Dashboard");
         }
 
