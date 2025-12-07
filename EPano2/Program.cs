@@ -1,10 +1,17 @@
 using EPano2.Interfaces;
 using EPano2.Manager;
+using EPano2.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Database
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddHttpClient();
 builder.Services.AddMemoryCache();
 builder.Services.Configure<EPano2.Models.Options.OpenWeatherOptions>(
@@ -12,7 +19,16 @@ builder.Services.Configure<EPano2.Models.Options.OpenWeatherOptions>(
 builder.Services.AddScoped<EPano2.Interfaces.IWeatherService, EPano2.Services.WeatherService>();
 
 builder.Services.AddHttpClient<IAnnouncementService, AnnouncementService>();
-builder.Services.AddSingleton<IVideoService, VideoService>(); //scope e çevir db baðlayýnca
+builder.Services.AddSingleton<IVideoService, VideoService>(); //scope e ï¿½evir db baï¿½layï¿½nca
+
+// Cookie Authentication (form tabanlÄ± login iÃ§in)
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Login";
+        options.AccessDeniedPath = "/Login";
+    });
 
 
 var app = builder.Build();
@@ -30,6 +46,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
