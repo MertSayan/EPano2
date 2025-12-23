@@ -6,5 +6,6 @@ namespace EPano2.Interfaces
     {
         Task<List<Announcement>> GetAnnouncements();
         Task<List<Announcement>> GetNews();
+        Task<List<Etkinlik>> GetEtkinlikler();
     }
 }

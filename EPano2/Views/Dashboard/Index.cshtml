@@ -77,26 +77,12 @@
 
                     <!-- SLIDER -->
                     <div class="announcements-carousel">
-                        @* Render Announcements (haber=false) separately *@
-                        @if (Model.Announcements.Any())
-                        {
-                            foreach (var ann in Model.Announcements.OrderBy(a => a.ID))
-                            {
-                                <div class="announcement-slide" data-haber="false" style="background-image:url('@ann.PosterImageUrl')">
-                                    <div class="announcement-overlay">
-                                        <h3 class="announcement-title">@ann.Title</h3>
-                                        <p class="announcement-content">@ann.Content</p>
-                                    </div>
-                                </div>
-                            }
-                        }
-                        
-                        @* Render News (haber=true) separately *@
+                        @* Render News (haber=true) separately - Start with News *@
                         @if (Model.News.Any())
                         {
                             foreach (var news in Model.News.OrderBy(a => a.ID))
                             {
-                                <div class="announcement-slide" data-haber="true" style="background-image:url('@news.PosterImageUrl')">
+                                <div class="announcement-slide" data-haber="true" data-etkinlik="false" style="background-image:url('@news.PosterImageUrl')">
                                     <div class="announcement-overlay">
                                         <h3 class="announcement-title">@news.Title</h3>
                                         <p class="announcement-content">@news.Content</p>
@@ -105,8 +91,36 @@
                             }
                         }
                         
-                        @* Show empty state only if both lists are empty *@
-                        @if (!Model.Announcements.Any() && !Model.News.Any())
+                        @* Render Announcements (haber=false) separately *@
+                        @if (Model.Announcements.Any())
+                        {
+                            foreach (var ann in Model.Announcements.OrderBy(a => a.ID))
+                            {
+                                <div class="announcement-slide" data-haber="false" data-etkinlik="false" style="background-image:url('@ann.PosterImageUrl')">
+                                    <div class="announcement-overlay">
+                                        <h3 class="announcement-title">@ann.Title</h3>
+                                        <p class="announcement-content">@ann.Content</p>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        
+                        @* Render Events (etkinlik=true) separately *@
+                        @if (Model.Etkinlikler.Any())
+                        {
+                            foreach (var etkinlik in Model.Etkinlikler.OrderBy(a => a.ID))
+                            {
+                                <div class="announcement-slide" data-haber="false" data-etkinlik="true" style="background-image:url('@etkinlik.PosterImageUrl')">
+                                    <div class="announcement-overlay">
+                                        <h3 class="announcement-title">@etkinlik.Title</h3>
+                                        <p class="announcement-content">@etkinlik.Content</p>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        
+                        @* Show empty state only if all lists are empty *@
+                        @if (!Model.Announcements.Any() && !Model.News.Any() && !Model.Etkinlikler.Any())
                         {
                             <div class="announcement-slide active">
                                 <div class="announcement-overlay">

@@ -69,12 +69,14 @@ namespace EPano2.Controllers
 
             // ---- VIEWMODEL ----
             var (announcements, news) = await GetAnnouncementsAndNews();
+            var etkinlikler = await GetEtkinlikler();
             var viewModel = new DashboardViewModel
             {
                 Videos = new Video(),
                 VideoEmbedUrls = videoEmbedUrls,
                 Announcements = announcements,
                 News = news,
+                Etkinlikler = etkinlikler,
                 Weather = GetMockWeather(),
                 WeatherForecast = GetMockWeatherForecast(),
                 ScrollingAnnouncements = GetMockScrollingAnnouncements(),
@@ -152,6 +154,26 @@ namespace EPano2.Controllers
             }).OrderBy(x => x.ID).ToList();
 
             return (announcementList, newsList);
+        }
+
+        private async Task<List<AnnouncementDto>> GetEtkinlikler()
+        {
+            // Fetch events
+            var etkinlikler = await _announcementService.GetEtkinlikler();
+
+            // Convert to DTOs - Map API fields to DTO: adi->Title, duyuruMetni->Content, afisUrl->PosterImageUrl
+            var etkinlikList = etkinlikler.Select(x => new AnnouncementDto
+            {
+                ID = x.ID,
+                Title = x.Baslik, // Maps from API field "adi"
+                Content = x.Icerik, // Maps from API field "duyuruMetni"
+                CreatedDate = x.BaslangicTarihi ?? x.KayitTarihi, // Maps from API field "tarih"
+                PosterImageUrl = x.Resim, // Maps from API field "afisUrl"
+                DisplayOrder = x.ID,
+                Haber = false // We'll use data-etkinlik attribute in view to distinguish
+            }).OrderBy(x => x.ID).ToList();
+
+            return etkinlikList;
         }
 
         private Weather GetMockWeather()
@@ -292,13 +314,15 @@ namespace EPano2.Controllers
                 return Json(new { customText = combinedText });
             }
 
-            // Aktif ticker yoksa API'den gelen duyuru ve haberleri kullan
+            // Aktif ticker yoksa API'den gelen duyuru, haber ve etkinlikleri kullan
             var (announcements, news) = await GetAnnouncementsAndNews();
+            var etkinlikler = await GetEtkinlikler();
             
             var result = new
             {
+                haberler = news.Select(x => new { title = x.Title }).ToList(),
                 duyurular = announcements.Select(x => new { title = x.Title }).ToList(),
-                haberler = news.Select(x => new { title = x.Title }).ToList()
+                etkinlikler = etkinlikler.Select(x => new { title = x.Title }).ToList()
             };
             
             return Json(result);
