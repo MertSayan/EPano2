@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 
 namespace EPano2.Controllers
 {
@@ -49,8 +50,7 @@ namespace EPano2.Controllers
 
             var vm = new AdminDashboardViewModel
             {
-                DefaultVideoUrl = videoConfig.DefaultVideoUrl,
-                IsDefaultActive = videoConfig.IsDefaultActive,
+                DefaultVideoFilePath = videoConfig.DefaultVideoFilePath,
                 ExtraVideoLinks = videoConfig.ExtraVideoLinks
                     .OrderBy(x => x.DisplayOrder)
                     .ToList(),
@@ -106,62 +106,169 @@ namespace EPano2.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SaveDefaultVideo(string? defaultVideoUrl, bool useDefault = false)
+        [DisableRequestSizeLimit] // Video dosyaları için size limit kaldırıldı
+        public async Task<IActionResult> SaveDefaultVideo(IFormFile videoFile)
         {
-            var config = await _dbContext.VideoConfigs
-                .Include(v => v.ExtraVideoLinks)
-                .FirstOrDefaultAsync() ?? new VideoConfig();
-
-            config.DefaultVideoUrl = string.IsNullOrWhiteSpace(defaultVideoUrl)
-                ? null
-                : defaultVideoUrl.Trim();
-
-            // Varsayılan ancak geçerli bir URL varsa aktif edilebilsin
-            config.IsDefaultActive = !string.IsNullOrWhiteSpace(config.DefaultVideoUrl) && useDefault;
-
-            if (config.Id == 0)
+            try
             {
-                _dbContext.VideoConfigs.Add(config);
+                if (videoFile == null || videoFile.Length == 0)
+                {
+                    TempData["ErrorMessage"] = "Lütfen bir video dosyası seçin.";
+                    return RedirectToAction("Dashboard");
+                }
+
+                // Video formatı kontrolü
+                var allowedExtensions = new[] { ".mp4", ".webm", ".ogg", ".mov" };
+                var fileExtension = Path.GetExtension(videoFile.FileName).ToLowerInvariant();
+                if (string.IsNullOrWhiteSpace(fileExtension) || !allowedExtensions.Contains(fileExtension))
+                {
+                    TempData["ErrorMessage"] = "Sadece video formatları kabul edilir (mp4, webm, ogg, mov).";
+                    return RedirectToAction("Dashboard");
+                }
+
+                var config = await _dbContext.VideoConfigs
+                    .Include(v => v.ExtraVideoLinks)
+                    .FirstOrDefaultAsync() ?? new VideoConfig();
+
+                if (config.Id == 0)
+                {
+                    _dbContext.VideoConfigs.Add(config);
+                    await _dbContext.SaveChangesAsync();
+                }
+
+                // Güvenli dosya adı oluştur
+                var safeFileName = GenerateSafeFileName(videoFile?.FileName ?? "video.mp4");
+                var videosPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "videos");
+                
+                // Klasör yoksa oluştur
+                if (!Directory.Exists(videosPath))
+                {
+                    Directory.CreateDirectory(videosPath);
+                }
+
+                // Eski default video varsa sil
+                if (!string.IsNullOrWhiteSpace(config.DefaultVideoFilePath))
+                {
+                    var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", config.DefaultVideoFilePath.TrimStart('/'));
+                    if (System.IO.File.Exists(oldFilePath))
+                    {
+                        try
+                        {
+                            System.IO.File.Delete(oldFilePath);
+                        }
+                        catch { } // Silme hatası görmezden gel
+                    }
+                }
+
+                // Yeni dosyayı kaydet
+                var filePath = Path.Combine(videosPath, safeFileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    if (videoFile != null)
+                    {
+                        await videoFile.CopyToAsync(stream);
+                    }
+                }
+
+                // Veritabanına kaydet
+                config.DefaultVideoFilePath = $"/videos/{safeFileName}";
+                await _dbContext.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Varsayılan video başarıyla yüklendi.";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Video yükleme hatası: {ex.Message}";
             }
 
-            await _dbContext.SaveChangesAsync();
-            TempData["SuccessMessage"] = "Varsayılan video linki başarıyla kaydedildi.";
             return RedirectToAction("Dashboard");
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddExtraVideoLink(string url, int? displayOrder)
+        [DisableRequestSizeLimit] // Video dosyaları için size limit kaldırıldı
+        public async Task<IActionResult> AddExtraVideoLink(IFormFile videoFile)
         {
-            if (string.IsNullOrWhiteSpace(url))
+            // ModelState'i temizle - video upload için gerekli değil
+            ModelState.Clear();
+            
+            try
             {
-                TempData["ErrorMessage"] = "Video linki boş olamaz.";
-                return RedirectToAction("Dashboard");
-            }
+                if (videoFile == null || videoFile.Length == 0)
+                {
+                    TempData["ErrorMessage"] = "Lütfen bir video dosyası seçin.";
+                    return RedirectToAction("Dashboard");
+                }
 
-            var config = await _dbContext.VideoConfigs
-                .Include(v => v.ExtraVideoLinks)
-                .FirstOrDefaultAsync() ?? new VideoConfig();
+                // Video formatı kontrolü
+                var allowedExtensions = new[] { ".mp4", ".webm", ".ogg", ".mov" };
+                var fileExtension = Path.GetExtension(videoFile.FileName).ToLowerInvariant();
+                if (string.IsNullOrWhiteSpace(fileExtension) || !allowedExtensions.Contains(fileExtension))
+                {
+                    TempData["ErrorMessage"] = "Sadece video formatları kabul edilir (mp4, webm, ogg, mov).";
+                    return RedirectToAction("Dashboard");
+                }
 
-            if (config.Id == 0)
-            {
-                _dbContext.VideoConfigs.Add(config);
+                var config = await _dbContext.VideoConfigs
+                    .Include(v => v.ExtraVideoLinks)
+                    .FirstOrDefaultAsync() ?? new VideoConfig();
+
+                if (config.Id == 0)
+                {
+                    _dbContext.VideoConfigs.Add(config);
+                    await _dbContext.SaveChangesAsync();
+                }
+
+                // Güvenli dosya adı oluştur
+                var safeFileName = GenerateSafeFileName(videoFile?.FileName ?? "video.mp4");
+                var videosPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "videos");
+                
+                // Klasör yoksa oluştur
+                if (!Directory.Exists(videosPath))
+                {
+                    Directory.CreateDirectory(videosPath);
+                }
+
+                // Yeni dosyayı kaydet
+                var filePath = Path.Combine(videosPath, safeFileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    if (videoFile != null)
+                    {
+                        await videoFile.CopyToAsync(stream);
+                    }
+                }
+
+                // displayOrder'ı form'dan al
+                var displayOrderStr = Request.Form["displayOrder"].ToString();
+                int order;
+                if (!string.IsNullOrWhiteSpace(displayOrderStr) && int.TryParse(displayOrderStr, out int parsedOrder))
+                {
+                    order = parsedOrder;
+                }
+                else
+                {
+                    order = config.ExtraVideoLinks.Any()
+                        ? config.ExtraVideoLinks.Max(x => x.DisplayOrder) + 1
+                        : 1;
+                }
+
+                config.ExtraVideoLinks.Add(new ExtraVideoLink
+                {
+                    FilePath = $"/videos/{safeFileName}",
+                    DisplayOrder = order,
+                    IsActive = true
+                });
+
+                // Veritabanına kaydet
                 await _dbContext.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Video başarıyla yüklendi.";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"Video yükleme hatası: {ex.Message}";
             }
 
-            int order = displayOrder ?? (config.ExtraVideoLinks.Any()
-                ? config.ExtraVideoLinks.Max(x => x.DisplayOrder) + 1
-                : 1);
-
-            config.ExtraVideoLinks.Add(new ExtraVideoLink
-            {
-                Url = url.Trim(),
-                DisplayOrder = order,
-                IsActive = true
-            });
-
-            await _dbContext.SaveChangesAsync();
-            TempData["SuccessMessage"] = "Ekstra video linki başarıyla eklendi.";
             return RedirectToAction("Dashboard");
         }
 
@@ -172,15 +279,51 @@ namespace EPano2.Controllers
             var link = await _dbContext.ExtraVideoLinks.FindAsync(id);
             if (link != null)
             {
+                // Dosyayı sil
+                if (!string.IsNullOrWhiteSpace(link.FilePath))
+                {
+                    var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", link.FilePath.TrimStart('/'));
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        try
+                        {
+                            System.IO.File.Delete(filePath);
+                        }
+                        catch { } // Silme hatası görmezden gel
+                    }
+                }
+
                 _dbContext.ExtraVideoLinks.Remove(link);
                 await _dbContext.SaveChangesAsync();
-                TempData["SuccessMessage"] = "Video linki başarıyla silindi.";
+                TempData["SuccessMessage"] = "Video başarıyla silindi.";
             }
             else
             {
-                TempData["ErrorMessage"] = "Video linki bulunamadı.";
+                TempData["ErrorMessage"] = "Video bulunamadı.";
             }
 
+            return RedirectToAction("Dashboard");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateExtraVideoLink(int id, string isActive)
+        {
+            var link = await _dbContext.ExtraVideoLinks.FindAsync(id);
+            if (link == null)
+            {
+                TempData["ErrorMessage"] = "Video bulunamadı.";
+                return RedirectToAction("Dashboard");
+            }
+
+            // String'den boolean'a dönüştür
+            bool newActiveState = isActive == "true" || isActive == "True";
+            var oldState = link.IsActive;
+            link.IsActive = newActiveState;
+            await _dbContext.SaveChangesAsync();
+
+            // Mesajı doğru duruma göre göster
+            TempData["SuccessMessage"] = $"Video başarıyla {(newActiveState ? "aktif" : "pasif")} edildi.";
             return RedirectToAction("Dashboard");
         }
 
@@ -327,6 +470,53 @@ namespace EPano2.Controllers
         private List<Announcement> GetMockAnnouncements()
         {
             return null;
+        }
+
+        /// <summary>
+        /// Güvenli dosya adı oluşturur (özel karakterleri temizler, Türkçe karakterleri dönüştürür)
+        /// </summary>
+        private string GenerateSafeFileName(string originalFileName)
+        {
+            if (string.IsNullOrWhiteSpace(originalFileName))
+            {
+                return $"video_{Guid.NewGuid():N}.mp4";
+            }
+
+            var nameWithoutExtension = Path.GetFileNameWithoutExtension(originalFileName);
+            var extension = Path.GetExtension(originalFileName);
+            
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                extension = ".mp4";
+            }
+            
+            // Türkçe karakterleri dönüştür
+            nameWithoutExtension = nameWithoutExtension
+                .Replace("ğ", "g").Replace("Ğ", "G")
+                .Replace("ü", "u").Replace("Ü", "U")
+                .Replace("ş", "s").Replace("Ş", "S")
+                .Replace("ı", "i").Replace("İ", "I")
+                .Replace("ö", "o").Replace("Ö", "O")
+                .Replace("ç", "c").Replace("Ç", "C");
+
+            // Özel karakterleri ve boşlukları temizle
+            var safeName = Regex.Replace(nameWithoutExtension, @"[^a-zA-Z0-9_-]", "_");
+            
+            // Çoklu alt çizgileri tek alt çizgiye dönüştür
+            safeName = Regex.Replace(safeName, @"_+", "_");
+            
+            // Başta ve sonda alt çizgi varsa kaldır
+            safeName = safeName.Trim('_');
+            
+            // Boşsa varsayılan isim ver
+            if (string.IsNullOrWhiteSpace(safeName))
+            {
+                safeName = "video";
+            }
+
+            // Guid ekle (aynı isimli dosyaların üzerine yazılmasını önlemek için)
+            var guid = Guid.NewGuid().ToString("N").Substring(0, 8);
+            return $"{safeName}_{guid}{extension}";
         }
     }
 }

@@ -8,14 +8,10 @@ namespace EPano2.Models
         public int Id { get; set; }  // Her zaman 1 kayıt olacak şekilde kullanacağız
 
         /// <summary>
-        /// Admin hiçbir ekstra link eklemezse dönecek olan varsayılan YouTube video/linki.
+        /// Varsayılan video dosyasının yolu (örn: /videos/default.mp4).
+        /// Aktif video yoksa bu video sürekli oynatılacak.
         /// </summary>
-        public string? DefaultVideoUrl { get; set; }
-
-        /// <summary>
-        /// Varsayılan video linki aktifse, ekstra linkler olsa bile sadece bu video dönsün.
-        /// </summary>
-        public bool IsDefaultActive { get; set; }
+        public string? DefaultVideoFilePath { get; set; }
 
         /// <summary>
         /// Admin'in eklediği ekstra videolar (sıralı şekilde dönecek).

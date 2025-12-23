@@ -1,7 +1,7 @@
 namespace EPano2.Models
 {
     /// <summary>
-    /// Varsayılan video dışında sırayla döndürülecek ekstra video linkleri.
+    /// Varsayılan video dışında sırayla döndürülecek ekstra video dosyaları.
     /// </summary>
     public class ExtraVideoLink
     {
@@ -10,7 +10,10 @@ namespace EPano2.Models
         public int VideoConfigId { get; set; }
         public VideoConfig VideoConfig { get; set; } = null!;
 
-        public string Url { get; set; } = string.Empty;
+        /// <summary>
+        /// Video dosyasının yolu (örn: /videos/example.mp4)
+        /// </summary>
+        public string FilePath { get; set; } = string.Empty;
 
         /// <summary>
         /// Videoların hangi sırayla döneceğini belirlemek için.

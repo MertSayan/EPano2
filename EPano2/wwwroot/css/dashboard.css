@@ -1923,3 +1923,94 @@ body.login-body {
         font-size: 2rem;
     }
 }
+
+/* Video Element Styles */
+.video-element {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #000;
+}
+
+/* Inline Form Styles */
+.inline-form {
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+}
+
+/* Button Icon Styles */
+.btn-icon {
+    background: none;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: var(--isubu-gray);
+}
+
+.btn-icon:hover {
+    background: rgba(0, 0, 0, 0.05);
+    transform: scale(1.1);
+}
+
+.btn-icon-danger {
+    color: #dc3545;
+}
+
+.btn-icon-danger:hover {
+    background: rgba(220, 53, 69, 0.1);
+    color: #c82333;
+}
+
+.btn-icon-success {
+    color: #28a745;
+}
+
+.btn-icon-success:hover {
+    background: rgba(40, 167, 69, 0.1);
+    color: #218838;
+}
+
+.btn-icon-warning {
+    color: #ffc107;
+}
+
+.btn-icon-warning:hover {
+    background: rgba(255, 193, 7, 0.1);
+    color: #e0a800;
+}
+
+/* Info Box Modern */
+.info-box-modern {
+    background: #e7f3ff;
+    border-left: 4px solid var(--isubu-light-blue);
+    padding: 12px 16px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1rem;
+    color: var(--isubu-navy);
+}
+
+.info-box-modern i {
+    font-size: 1.2rem;
+    color: var(--isubu-light-blue);
+}
+
+/* Badge Modern Colors */
+.badge-modern.bg-success {
+    background-color: #28a745 !important;
+    color: white;
+}
+
+.badge-modern.bg-secondary {
+    background-color: #6c757d !important;
+    color: white;
+}

@@ -7,8 +7,7 @@ namespace EPano2.Models
     /// </summary>
     public class AdminDashboardViewModel
     {
-        public string? DefaultVideoUrl { get; set; }
-        public bool IsDefaultActive { get; set; }
+        public string? DefaultVideoFilePath { get; set; }
         public List<ExtraVideoLink> ExtraVideoLinks { get; set; } = new List<ExtraVideoLink>();
 
         public List<TickerItem> TickerItems { get; set; } = new List<TickerItem>();
