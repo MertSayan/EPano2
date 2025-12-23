@@ -3,7 +3,8 @@
 @{
     ViewData["Title"] = "ISUBU Bilgisayar Mühendisliği - Dijital Bilgi Panosu";
     Layout = null;
-    var videoEmbedJson = ViewBag.VideoEmbedJson as string ?? "[]";
+    var videoFilePathsJson = ViewBag.VideoFilePathsJson as string ?? "[]";
+    var defaultVideoFilePath = ViewBag.DefaultVideoFilePath as string;
 }
 
 <!DOCTYPE html>
@@ -33,23 +34,16 @@
 
                 <!-- Video -->
                 <section class="video-section fade-in">
-                    <h2 class="video-title">Dönecek Olan Videolar</h2>
+                    <h2 class="video-title">Videolar</h2>
                     <div class="video-player">
-                        @if (Model.VideoEmbedUrls != null && Model.VideoEmbedUrls.Any())
-                        {
-                            <iframe id="mainVideoFrame"
-                                    class="youtube-frame"
-                                    src="@Model.VideoEmbedUrls.First()"
-                                    allow="autoplay; encrypted-media"
-                                    allowfullscreen>
-                            </iframe>
-                        }
-                        else
-                        {
-                            <div class="video-placeholder">
-                                Video bulunamadı
-                            </div>
-                        }
+                        <video id="mainVideoPlayer"
+                               class="video-element"
+                               autoplay
+                               muted
+                               playsinline
+                               style="width: 100%; height: 100%; object-fit: cover;">
+                            Tarayıcınız video oynatmayı desteklemiyor.
+                        </video>
                     </div>
                 </section>
 
@@ -73,7 +67,7 @@
             <div class="right-column">
 
                 <section class="announcements-section fade-in">
-                    <h2 class="announcements-title">Duyurular - Haberler</h2>
+                    <h2 class="announcements-title">Duyurular - Haberler - Etkinlikler</h2>
 
                     <!-- SLIDER -->
                     <div class="announcements-carousel">
@@ -154,8 +148,9 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Sunucudan gelen video embed URL listesi
-        window.videoEmbedUrls = @Html.Raw(videoEmbedJson);
+        // Sunucudan gelen video dosya yolu listesi
+        window.videoFilePaths = @Html.Raw(videoFilePathsJson);
+        window.defaultVideoFilePath = @Html.Raw(defaultVideoFilePath != null ? $"\"{defaultVideoFilePath}\"" : "null");
     </script>
 
     <script>

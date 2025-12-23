@@ -49,37 +49,66 @@ function initializeDateTime() {
     setInterval(updateDateTime, 1000);
 }
 
-// Video Player with Auto-rotation (YouTube iframe)
+// Video Player with Auto-rotation (HTML5 video)
 function initializeVideoPlayer() {
-    const frame = document.querySelector('.video-player .youtube-frame');
-    const urls = (window.videoEmbedUrls || []).slice();
-
-    if (!frame || urls.length === 0) {
+    const videoPlayer = document.getElementById('mainVideoPlayer');
+    if (!videoPlayer) {
         return;
     }
 
+    const videoFilePaths = (window.videoFilePaths || []).slice();
+    const defaultVideoFilePath = window.defaultVideoFilePath;
+
     let currentIndex = 0;
+    let isPlayingDefault = false;
 
-    function setSrc() {
-        const url = urls[currentIndex];
-        console.log('Switching video to:', url);
-        frame.src = url;
+    function setVideoSource(filePath) {
+        if (!filePath) {
+            console.warn('Video dosya yolu bulunamadı');
+            return;
+        }
+
+        console.log('Switching video to:', filePath);
+        videoPlayer.src = filePath;
+        videoPlayer.load();
+        
+        // Video yüklendikten sonra oynatmayı başlat
+        videoPlayer.addEventListener('loadeddata', function onLoaded() {
+            videoPlayer.play().catch(err => {
+                console.warn('Video oynatma hatası:', err);
+            });
+            videoPlayer.removeEventListener('loadeddata', onLoaded);
+        }, { once: true });
     }
 
-    // Eğer view tarafında ilk src ayarlanmadıysa buradan set edelim
-    setSrc();
+    // Video bittiğinde sıradaki videoya geç
+    videoPlayer.addEventListener('ended', function() {
+        if (videoFilePaths.length > 0) {
+            // Aktif ekstra videolar varsa sıradakine geç (varsayılan video değil)
+            isPlayingDefault = false;
+            currentIndex = (currentIndex + 1) % videoFilePaths.length;
+            setVideoSource(videoFilePaths[currentIndex]);
+        } else if (defaultVideoFilePath) {
+            // Aktif ekstra video yoksa varsayılan videoyu tekrar oynat (loop)
+            isPlayingDefault = true;
+            setVideoSource(defaultVideoFilePath);
+        }
+    });
 
-    if (urls.length === 1) {
-        return; // Tek video varsa döngüye gerek yok
+    // İlk videoyu başlat
+    // MANTIK: Aktif ekstra videolar varsa onlar sırayla döner, yoksa varsayılan video döner
+    if (videoFilePaths.length > 0) {
+        // Aktif ekstra videolar varsa ilkini oynat (varsayılan video değil)
+        isPlayingDefault = false;
+        currentIndex = 0;
+        setVideoSource(videoFilePaths[0]);
+    } else if (defaultVideoFilePath) {
+        // Aktif ekstra video yoksa varsayılan videoyu oynat
+        isPlayingDefault = true;
+        setVideoSource(defaultVideoFilePath);
+    } else {
+        console.warn('Hiç video dosyası bulunamadı');
     }
-
-    function switchToNextVideo() {
-        currentIndex = (currentIndex + 1) % urls.length;
-        setSrc();
-    }
-
-    // Her 20 saniyede bir videoyu değiştir (gerekirse artırılabilir)
-    setInterval(switchToNextVideo, 20000);
 }
 
 // Announcements Carousel

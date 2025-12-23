@@ -26,46 +26,32 @@ namespace EPano2.Controllers
                 .Include(v => v.ExtraVideoLinks)
                 .FirstOrDefaultAsync();
 
-            var videoEmbedUrls = new List<string>();
+            var videoFilePaths = new List<string>();
+            string? defaultVideoFilePath = null;
 
             if (videoConfig != null)
             {
-                // Eğer varsayılan aktifse, sadece onu kullan
-                if (videoConfig.IsDefaultActive && !string.IsNullOrWhiteSpace(videoConfig.DefaultVideoUrl))
-                {
-                    var embed = ToYoutubeEmbedUrl(videoConfig.DefaultVideoUrl);
-                    if (!string.IsNullOrWhiteSpace(embed))
-                        videoEmbedUrls.Add(embed);
-                }
-                else
-                {
-                    // Önce aktif ekstra linkleri sıraya göre al
-                    var activeExtras = videoConfig.ExtraVideoLinks
-                        .Where(x => x.IsActive)
-                        .OrderBy(x => x.DisplayOrder)
-                        .Select(x => x.Url)
-                        .ToList();
+                defaultVideoFilePath = videoConfig.DefaultVideoFilePath;
 
-                    if (activeExtras.Any())
-                    {
-                        foreach (var url in activeExtras)
-                        {
-                            var embed = ToYoutubeEmbedUrl(url);
-                            if (!string.IsNullOrWhiteSpace(embed))
-                                videoEmbedUrls.Add(embed);
-                        }
-                    }
-                    else if (!string.IsNullOrWhiteSpace(videoConfig.DefaultVideoUrl))
-                    {
-                        var embed = ToYoutubeEmbedUrl(videoConfig.DefaultVideoUrl);
-                        if (!string.IsNullOrWhiteSpace(embed))
-                            videoEmbedUrls.Add(embed);
-                    }
+                // Aktif ekstra videoları sıraya göre al
+                // Eğer aktif ekstra videolar varsa onlar dönecek (varsayılan video değil)
+                var activeExtras = videoConfig.ExtraVideoLinks
+                    .Where(x => x.IsActive && !string.IsNullOrWhiteSpace(x.FilePath))
+                    .OrderBy(x => x.DisplayOrder)
+                    .Select(x => x.FilePath!)
+                    .ToList();
+
+                if (activeExtras.Any())
+                {
+                    // Aktif ekstra videolar varsa onları kullan (varsayılan video değil)
+                    videoFilePaths = activeExtras;
                 }
+                // Aktif ekstra video yoksa varsayılan video kullanılacak (frontend'de kontrol edilecek)
             }
 
             // JS'te kullanmak için JSON olarak da gönder
-            ViewBag.VideoEmbedJson = JsonConvert.SerializeObject(videoEmbedUrls);
+            ViewBag.VideoFilePathsJson = JsonConvert.SerializeObject(videoFilePaths);
+            ViewBag.DefaultVideoFilePath = defaultVideoFilePath;
 
             // ---- VIEWMODEL ----
             var (announcements, news) = await GetAnnouncementsAndNews();
@@ -73,7 +59,8 @@ namespace EPano2.Controllers
             var viewModel = new DashboardViewModel
             {
                 Videos = new Video(),
-                VideoEmbedUrls = videoEmbedUrls,
+                VideoFilePaths = videoFilePaths,
+                DefaultVideoFilePath = defaultVideoFilePath,
                 Announcements = announcements,
                 News = news,
                 Etkinlikler = etkinlikler,
@@ -86,42 +73,6 @@ namespace EPano2.Controllers
             return View(viewModel);
         }
 
-        private string? ToYoutubeEmbedUrl(string? url)
-        {
-            if (string.IsNullOrWhiteSpace(url))
-                return null;
-
-            try
-            {
-                var trimmed = url.Trim();
-
-                // v= parametresinden ID çek
-                if (trimmed.Contains("v="))
-                {
-                    var part = trimmed.Split("v=")[1];
-                    var ampIndex = part.IndexOf('&');
-                    var id = ampIndex >= 0 ? part[..ampIndex] : part;
-                    // Tek videoyu embed ediyoruz, döngüyü kendi JS mantığımız yapıyor
-                    return $"https://www.youtube.com/embed/{id}?autoplay=1&mute=1";
-                }
-
-                // youtu.be kısa linkleri
-                var marker = "youtu.be/";
-                if (trimmed.Contains(marker))
-                {
-                    var part = trimmed.Split(marker)[1];
-                    var qIndex = part.IndexOfAny(new[] { '?', '&' });
-                    var id = qIndex >= 0 ? part[..qIndex] : part;
-                    return $"https://www.youtube.com/embed/{id}?autoplay=1&mute=1";
-                }
-
-                return null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
 
         private async Task<(List<AnnouncementDto> Announcements, List<AnnouncementDto> News)> GetAnnouncementsAndNews()
         {

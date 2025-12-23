@@ -73,31 +73,30 @@
                                 <i class="bi bi-film"></i>
                                 <span>Varsayılan Video</span>
                             </div>
-                            <form asp-action="SaveDefaultVideo" method="post" class="modern-form">
+                            @if (!string.IsNullOrWhiteSpace(Model.DefaultVideoFilePath))
+                            {
+                                <div class="info-box-modern" style="margin-bottom: 1rem;">
+                                    <i class="bi bi-info-circle"></i>
+                                    <span>Mevcut varsayılan video: <strong>@Model.DefaultVideoFilePath</strong></span>
+                                </div>
+                            }
+                            <form asp-controller="Admin" asp-action="SaveDefaultVideo" method="post" enctype="multipart/form-data" class="modern-form">
                                 @Html.AntiForgeryToken()
                                 <div class="form-group">
-                                    <label>YouTube Video URL</label>
+                                    <label>Video Dosyası Yükle</label>
                                     <div class="input-group">
-                                        <span class="input-icon"><i class="bi bi-link-45deg"></i></span>
-                                        <input type="url"
-                                               name="defaultVideoUrl"
+                                        <span class="input-icon"><i class="bi bi-upload"></i></span>
+                                        <input type="file"
+                                               name="videoFile"
                                                class="form-control-modern"
-                                               placeholder="https://www.youtube.com/watch?v=..."
-                                               value="@Model.DefaultVideoUrl" />
+                                               accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                                               required />
                                     </div>
-                                </div>
-                                <div class="form-group">
-                                    <div class="checkbox-modern">
-                                        <input type="checkbox" name="useDefault" value="true" id="useDefault" @(Model.IsDefaultActive ? "checked" : "") />
-                                        <label for="useDefault">
-                                            <span class="checkmark"></span>
-                                            Varsayılan videoyu aktif et (ekstra linkler olsa bile sadece bu dönsün)
-                                        </label>
-                                    </div>
+                                    <small class="form-hint">Desteklenen formatlar: MP4, WebM, OGG, MOV. Varsayılan video aktif video yoksa sürekli oynatılacaktır.</small>
                                 </div>
                                 <button type="submit" class="btn-modern btn-primary-modern">
                                     <i class="bi bi-check-circle"></i>
-                                    <span>Kaydet</span>
+                                    <span>Yükle ve Kaydet</span>
                                 </button>
                             </form>
                         </div>
@@ -106,20 +105,21 @@
                         <div class="section-block">
                             <div class="section-title">
                                 <i class="bi bi-collection-play"></i>
-                                <span>Ekstra Video Linkleri</span>
+                                <span>Ekstra Videolar</span>
                                 <span class="badge-modern">@(Model.ExtraVideoLinks?.Count ?? 0)</span>
                             </div>
-                            <form asp-action="AddExtraVideoLink" method="post" class="modern-form">
+                            <form asp-controller="Admin" asp-action="AddExtraVideoLink" method="post" enctype="multipart/form-data" class="modern-form">
                                 @Html.AntiForgeryToken()
                                 <div class="form-row">
                                     <div class="form-group flex-grow">
-                                        <label>Yeni Video URL</label>
+                                        <label>Yeni Video Dosyası Yükle</label>
                                         <div class="input-group">
-                                            <span class="input-icon"><i class="bi bi-link-45deg"></i></span>
-                                            <input type="url"
-                                                   name="url"
+                                            <span class="input-icon"><i class="bi bi-upload"></i></span>
+                                            <input type="file"
+                                                   name="videoFile"
                                                    class="form-control-modern"
-                                                   placeholder="YouTube URL" />
+                                                   accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                                                   required />
                                         </div>
                                     </div>
                                     <div class="form-group" style="width: 120px;">
@@ -132,10 +132,11 @@
                                     <div class="form-group" style="width: auto; align-self: flex-end;">
                                         <button type="submit" class="btn-modern btn-success-modern">
                                             <i class="bi bi-plus-circle"></i>
-                                            <span>Ekle</span>
+                                            <span>Yükle</span>
                                         </button>
                                     </div>
                                 </div>
+                                <small class="form-hint">Desteklenen formatlar: MP4, WebM, OGG, MOV. Videolar sırayla oynatılacaktır.</small>
                             </form>
 
                             @if (Model.ExtraVideoLinks != null && Model.ExtraVideoLinks.Any())
@@ -145,7 +146,8 @@
                                         <thead>
                                             <tr>
                                                 <th>Sıra</th>
-                                                <th>Video URL</th>
+                                                <th>Video Dosyası</th>
+                                                <th>Durum</th>
                                                 <th>İşlemler</th>
                                             </tr>
                                         </thead>
@@ -156,15 +158,28 @@
                                                     <td><span class="badge-order">@link.DisplayOrder</span></td>
                                                     <td>
                                                         <div class="url-cell">
-                                                            <i class="bi bi-youtube"></i>
-                                                            <span>@link.Url</span>
+                                                            <i class="bi bi-file-play"></i>
+                                                            <span>@link.FilePath</span>
                                                         </div>
                                                     </td>
                                                     <td>
-                                                        <form asp-action="DeleteExtraVideoLink" method="post" class="inline-form">
+                                                        <span class="badge-modern @(link.IsActive ? "bg-success" : "bg-secondary")">
+                                                            @(link.IsActive ? "Aktif" : "Pasif")
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <form asp-action="UpdateExtraVideoLink" method="post" class="inline-form">
                                                             @Html.AntiForgeryToken()
                                                             <input type="hidden" name="id" value="@link.Id" />
-                                                            <button type="submit" class="btn-icon-danger" onclick="return confirm('Bu videoyu silmek istediğinize emin misiniz?');">
+                                                            <input type="hidden" name="isActive" value="@((!link.IsActive).ToString().ToLower())" />
+                                                            <button type="submit" class="btn-icon @(link.IsActive ? "btn-icon-warning" : "btn-icon-success")" title="@(link.IsActive ? "Pasif Yap" : "Aktif Yap")">
+                                                                <i class="bi bi-@(link.IsActive ? "pause" : "play")-circle"></i>
+                                                            </button>
+                                                        </form>
+                                                        <form asp-action="DeleteExtraVideoLink" method="post" class="inline-form" style="display: inline;">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="id" value="@link.Id" />
+                                                            <button type="submit" class="btn-icon-danger" onclick="return confirm('Bu videoyu silmek istediğinize emin misiniz?');" title="Sil">
                                                                 <i class="bi bi-trash"></i>
                                                             </button>
                                                         </form>
@@ -179,7 +194,7 @@
                             {
                                 <div class="empty-state-modern">
                                     <i class="bi bi-inbox"></i>
-                                    <p>Henüz ekstra video linki eklenmemiş.</p>
+                                    <p>Henüz ekstra video eklenmemiş.</p>
                                 </div>
                             }
                         </div>
@@ -341,16 +356,28 @@
 
         // Form submit edildikten sonra input alanlarını temizle
         document.addEventListener('DOMContentLoaded', function() {
-            // Ekstra Video Linki Ekleme Formu
+            // Ekstra Video Yükleme Formu
             const addVideoForm = document.querySelector('form[action*="AddExtraVideoLink"]');
             if (addVideoForm) {
                 addVideoForm.addEventListener('submit', function() {
                     // Form submit edildikten hemen sonra input'ları temizle
                     setTimeout(function() {
-                        const urlInput = addVideoForm.querySelector('input[name="url"]');
+                        const videoFileInput = addVideoForm.querySelector('input[name="videoFile"]');
                         const orderInput = addVideoForm.querySelector('input[name="displayOrder"]');
-                        if (urlInput) urlInput.value = '';
+                        if (videoFileInput) videoFileInput.value = '';
                         if (orderInput) orderInput.value = '';
+                    }, 50);
+                });
+            }
+
+            // Varsayılan Video Yükleme Formu
+            const saveDefaultVideoForm = document.querySelector('form[action*="SaveDefaultVideo"]');
+            if (saveDefaultVideoForm) {
+                saveDefaultVideoForm.addEventListener('submit', function() {
+                    // Form submit edildikten hemen sonra input'ları temizle
+                    setTimeout(function() {
+                        const videoFileInput = saveDefaultVideoForm.querySelector('input[name="videoFile"]');
+                        if (videoFileInput) videoFileInput.value = '';
                     }, 50);
                 });
             }
