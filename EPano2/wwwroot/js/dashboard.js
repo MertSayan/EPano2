@@ -90,46 +90,54 @@ function initializeAnnouncementsCarousel() {
     const allSlides = Array.from(document.querySelectorAll('.announcement-slide'));
     if (allSlides.length === 0) return;
     
-    // Extract and store all announcement data from existing slides
-    const allAnnouncementsData = allSlides.map((slide) => {
-        const titleEl = slide.querySelector('.announcement-title');
-        const contentEl = slide.querySelector('.announcement-content');
-        const haberValue = slide.getAttribute('data-haber');
-        const backgroundImage = slide.style.backgroundImage;
-        
-        return {
-            haber: haberValue === 'true' || haberValue === 'True' || haberValue === true,
-            title: titleEl ? titleEl.textContent.trim() : '',
-            content: contentEl ? contentEl.textContent.trim() : '',
-            posterImageUrl: backgroundImage ? backgroundImage.replace(/^url\(["']?|["']?\)$/g, '') : ''
-        };
-    });
+        // Extract and store all announcement data from existing slides
+        const allAnnouncementsData = allSlides.map((slide) => {
+            const titleEl = slide.querySelector('.announcement-title');
+            const contentEl = slide.querySelector('.announcement-content');
+            const haberValue = slide.getAttribute('data-haber');
+            const etkinlikValue = slide.getAttribute('data-etkinlik');
+            const backgroundImage = slide.style.backgroundImage;
+            
+            return {
+                haber: haberValue === 'true' || haberValue === 'True' || haberValue === true,
+                etkinlik: etkinlikValue === 'true' || etkinlikValue === 'True' || etkinlikValue === true,
+                title: titleEl ? titleEl.textContent.trim() : '',
+                content: contentEl ? contentEl.textContent.trim() : '',
+                posterImageUrl: backgroundImage ? backgroundImage.replace(/^url\(["']?|["']?\)$/g, '') : ''
+            };
+        });
     
-    // Filter announcements by haber status - Keep them completely separate
-    // Announcements only (haber = false) - maintain original order (already sorted by ID from backend)
-    const duyurular = allAnnouncementsData.filter(x => x.haber === false);
+    // Filter announcements by haber status and etkinlik - Keep them completely separate
+    // News only (haber = true, etkinlik = false) - maintain original order (already sorted by ID from backend)
+    const haberler = allAnnouncementsData.filter(x => x.haber === true && x.etkinlik !== true);
     
-    // News only (haber = true) - maintain original order (already sorted by ID from backend)
-    const haberler = allAnnouncementsData.filter(x => x.haber === true);
+    // Announcements only (haber = false, etkinlik = false) - maintain original order (already sorted by ID from backend)
+    const duyurular = allAnnouncementsData.filter(x => x.haber === false && x.etkinlik !== true);
+    
+    // Events only (etkinlik = true) - maintain original order (already sorted by ID from backend)
+    const etkinlikler = allAnnouncementsData.filter(x => x.etkinlik === true);
     
     // Make arrays globally available for ticker to use
     window.announcementData = {
         duyurular: duyurular.filter(x => x.title && x.title.length > 0),
-        haberler: haberler.filter(x => x.title && x.title.length > 0)
+        haberler: haberler.filter(x => x.title && x.title.length > 0),
+        etkinlikler: etkinlikler.filter(x => x.title && x.title.length > 0)
     };
     
-    // Current mode state: showNews = false → announcements, showNews = true → news
-    let showNews = false; // Start with duyurular (haber = false)
+    // Current mode state: 'haberler' → 'duyurular' → 'etkinlikler' → 'haberler' (cycle)
+    // Start with haberler as requested
+    let currentMode = 'haberler'; // Start with haberler
     let currentSlideIndex = 0;
     let slideInterval = null;
     let currentSlides = []; // For slide rotation only
     
     // Function to rebuild slider DOM with filtered items
-    // showNewsMode = false → shows ONLY announcements (duyurular list)
-    // showNewsMode = true → shows ONLY news (haberler list)
-    function updateSlider(showNewsMode) {
-        // Update global mode state to keep scrolling text in sync
-        showNews = showNewsMode;
+    // mode = 'haberler' → shows ONLY news (haberler list)
+    // mode = 'duyurular' → shows ONLY announcements (duyurular list)
+    // mode = 'etkinlikler' → shows ONLY events (etkinlikler list)
+    function updateSlider(mode) {
+        // Update global mode state
+        currentMode = mode;
         
         // Stop existing slide rotation
         if (slideInterval) {
@@ -138,9 +146,19 @@ function initializeAnnouncementsCarousel() {
         }
         
         // Get the appropriate list based on mode - STRICT SEPARATION
-        // When showNewsMode = false: use ONLY duyurular list (announcements)
-        // When showNewsMode = true: use ONLY haberler list (news)
-        const filteredItems = showNewsMode ? haberler : duyurular;
+        let filteredItems = [];
+        let emptyMessage = '';
+        
+        if (mode === 'haberler') {
+            filteredItems = haberler;
+            emptyMessage = 'Haber Bulunamadı';
+        } else if (mode === 'duyurular') {
+            filteredItems = duyurular;
+            emptyMessage = 'Duyuru Bulunamadı';
+        } else if (mode === 'etkinlikler') {
+            filteredItems = etkinlikler;
+            emptyMessage = 'Etkinlik Bulunamadı';
+        }
         
         // Clear existing slides from DOM
         carousel.innerHTML = '';
@@ -151,11 +169,12 @@ function initializeAnnouncementsCarousel() {
             emptySlide.className = 'announcement-slide active';
             emptySlide.innerHTML = `
                 <div class="announcement-overlay">
-                    <h3 class="announcement-title">${showNewsMode ? 'Haber Bulunamadı' : 'Duyuru Bulunamadı'}</h3>
+                    <h3 class="announcement-title">${emptyMessage}</h3>
                 </div>
             `;
-            // Set data-haber for empty state
-            emptySlide.setAttribute('data-haber', showNewsMode ? 'true' : 'false');
+            // Set attributes for empty state
+            emptySlide.setAttribute('data-haber', mode === 'haberler' ? 'true' : 'false');
+            emptySlide.setAttribute('data-etkinlik', mode === 'etkinlikler' ? 'true' : 'false');
             carousel.appendChild(emptySlide);
             currentSlides = [emptySlide];
         } else {
@@ -170,6 +189,7 @@ function initializeAnnouncementsCarousel() {
                 const bgImage = item.posterImageUrl ? `background-image:url('${item.posterImageUrl}')` : '';
                 slide.setAttribute('style', bgImage);
                 slide.setAttribute('data-haber', item.haber.toString());
+                slide.setAttribute('data-etkinlik', item.etkinlik ? 'true' : 'false');
                 
                 slide.innerHTML = `
                     <div class="announcement-overlay">
@@ -206,12 +226,13 @@ function initializeAnnouncementsCarousel() {
         // Check if we've completed a full cycle (went from last slide to first)
         // This happens when previousIndex was the last slide and now we're at 0
         if (previousIndex === currentSlides.length - 1 && currentSlideIndex === 0 && currentSlides.length > 1) {
-            // We've completed one full cycle, switch to the other list
-            const otherList = showNews ? duyurular : haberler;
-            if (otherList.length > 0) {
-                // Switch to the other list after animation
+            // We've completed one full cycle, switch to the next mode in rotation
+            // Rotation: haberler → duyurular → etkinlikler → haberler
+            const nextMode = getNextMode();
+            if (hasItemsForMode(nextMode)) {
+                // Switch to the next mode after animation
                 setTimeout(() => {
-                    updateSlider(!showNews);
+                    updateSlider(nextMode);
                 }, 500);
                 return;
             }
@@ -219,11 +240,11 @@ function initializeAnnouncementsCarousel() {
         
         // If only one slide in current list, check if we should switch
         if (currentSlides.length === 1) {
-            const otherList = showNews ? duyurular : haberler;
-            if (otherList.length > 0) {
-                // Switch to the other list
+            const nextMode = getNextMode();
+            if (hasItemsForMode(nextMode)) {
+                // Switch to the next mode
                 setTimeout(() => {
-                    updateSlider(!showNews);
+                    updateSlider(nextMode);
                 }, 500);
                 return;
             }
@@ -236,8 +257,32 @@ function initializeAnnouncementsCarousel() {
         }, 500);
     }
     
-    // Initialize: Show duyurular first (haber = false)
-    updateSlider(false);
+    // Get next mode in rotation: haberler → duyurular → etkinlikler → haberler
+    function getNextMode() {
+        if (currentMode === 'haberler') {
+            return 'duyurular';
+        } else if (currentMode === 'duyurular') {
+            return 'etkinlikler';
+        } else if (currentMode === 'etkinlikler') {
+            return 'haberler';
+        }
+        return 'haberler'; // Default fallback
+    }
+    
+    // Check if there are items for a given mode
+    function hasItemsForMode(mode) {
+        if (mode === 'haberler') {
+            return haberler.length > 0;
+        } else if (mode === 'duyurular') {
+            return duyurular.length > 0;
+        } else if (mode === 'etkinlikler') {
+            return etkinlikler.length > 0;
+        }
+        return false;
+    }
+    
+    // Initialize: Show haberler first as requested
+    updateSlider('haberler');
 }
 
 // Independent Bottom Ticker - Fetches data from API and creates continuous flow
@@ -281,38 +326,53 @@ function initializeIndependentTicker() {
                 return;
             }
 
-            const duyurular = (data.duyurular || []).filter(x => x.title && x.title.length > 0);
             const haberler = (data.haberler || []).filter(x => x.title && x.title.length > 0);
+            const duyurular = (data.duyurular || []).filter(x => x.title && x.title.length > 0);
+            const etkinlikler = (data.etkinlikler || []).filter(x => x.title && x.title.length > 0);
             
-            // Check if both lists are empty
-            if (duyurular.length === 0 && haberler.length === 0) {
+            // Check if all lists are empty
+            if (haberler.length === 0 && duyurular.length === 0 && etkinlikler.length === 0) {
                 scrollingTextEl.innerHTML = 'Duyuru bulunamadı • Duyuru bulunamadı • Duyuru bulunamadı';
                 return;
             }
             
-            // Build continuous flow: Duyurular -> Haberler -> Duyurular -> Haberler...
+            // Build continuous flow: Haberler -> Duyurular -> Etkinlikler -> Haberler...
             let combinedText = '';
             
-            if (duyurular.length > 0) {
-                const duyuruTitles = duyurular.map(item => item.title);
-                combinedText += 'Duyurular: ' + duyuruTitles.join(' • ');
-            }
-            
+            // Start with Haberler
             if (haberler.length > 0) {
-                if (combinedText.length > 0) {
-                    combinedText += ' • ';
-                }
                 const haberTitles = haberler.map(item => item.title);
                 combinedText += 'Haberler: ' + haberTitles.join(' • ');
             }
             
+            // Then Duyurular
+            if (duyurular.length > 0) {
+                if (combinedText.length > 0) {
+                    combinedText += ' • ';
+                }
+                const duyuruTitles = duyurular.map(item => item.title);
+                combinedText += 'Duyurular: ' + duyuruTitles.join(' • ');
+            }
+            
+            // Then Etkinlikler
+            if (etkinlikler.length > 0) {
+                if (combinedText.length > 0) {
+                    combinedText += ' • ';
+                }
+                const etkinlikTitles = etkinlikler.map(item => item.title);
+                combinedText += 'Etkinlikler: ' + etkinlikTitles.join(' • ');
+            }
+            
             // If only one type exists, just use that
-            if (duyurular.length === 0 && haberler.length > 0) {
-                const haberTitles = haberler.map(item => item.title);
-                combinedText = 'Haberler: ' + haberTitles.join(' • ');
-            } else if (haberler.length === 0 && duyurular.length > 0) {
+            if (haberler.length === 0 && duyurular.length === 0 && etkinlikler.length > 0) {
+                const etkinlikTitles = etkinlikler.map(item => item.title);
+                combinedText = 'Etkinlikler: ' + etkinlikTitles.join(' • ');
+            } else if (haberler.length === 0 && etkinlikler.length === 0 && duyurular.length > 0) {
                 const duyuruTitles = duyurular.map(item => item.title);
                 combinedText = 'Duyurular: ' + duyuruTitles.join(' • ');
+            } else if (duyurular.length === 0 && etkinlikler.length === 0 && haberler.length > 0) {
+                const haberTitles = haberler.map(item => item.title);
+                combinedText = 'Haberler: ' + haberTitles.join(' • ');
             }
             
             // Create seamless loop by duplicating the content multiple times

@@ -12,6 +12,7 @@ namespace EPano2.Models
         public List<string> VideoEmbedUrls { get; set; } = new List<string>();
         public List<AnnouncementDto> Announcements { get; set; } = new List<AnnouncementDto>();
         public List<AnnouncementDto> News { get; set; } = new List<AnnouncementDto>();
+        public List<AnnouncementDto> Etkinlikler { get; set; } = new List<AnnouncementDto>();
         public Weather Weather { get; set; } = new Weather();
         public WeatherForecast WeatherForecast { get; set; } = new WeatherForecast();
         public List<string> ScrollingAnnouncements { get; set; } = new List<string>();
