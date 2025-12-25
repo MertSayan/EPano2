@@ -1,11 +1,13 @@
 using EPano2.Data;
 using EPano2.Interfaces;
 using EPano2.Models;
+using EPano2.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 
@@ -16,11 +18,13 @@ namespace EPano2.Controllers
     {
         private readonly IVideoService _videoService;
         private readonly ApplicationDbContext _dbContext;
+        private readonly IHubContext<AppUpdateHub> _hubContext;
 
-        public AdminController(IVideoService videoService, ApplicationDbContext dbContext)
+        public AdminController(IVideoService videoService, ApplicationDbContext dbContext, IHubContext<AppUpdateHub> hubContext)
         {
             _videoService = videoService;
             _dbContext = dbContext;
+            _hubContext = hubContext;
         }
 
         // /Admin isteği varsayılan olarak bu aksiyona gelir
@@ -174,6 +178,9 @@ namespace EPano2.Controllers
                 config.DefaultVideoFilePath = $"/videos/{safeFileName}";
                 await _dbContext.SaveChangesAsync();
 
+                // SignalR ile tüm istemcilere güncelleme bildir
+                await _hubContext.Clients.All.SendAsync("AppDataUpdated");
+
                 TempData["SuccessMessage"] = "Varsayılan video başarıyla yüklendi.";
             }
             catch (Exception ex)
@@ -262,6 +269,10 @@ namespace EPano2.Controllers
 
                 // Veritabanına kaydet
                 await _dbContext.SaveChangesAsync();
+
+                // SignalR ile tüm istemcilere güncelleme bildir
+                await _hubContext.Clients.All.SendAsync("AppDataUpdated");
+
                 TempData["SuccessMessage"] = "Video başarıyla yüklendi.";
             }
             catch (Exception ex)
@@ -295,6 +306,10 @@ namespace EPano2.Controllers
 
                 _dbContext.ExtraVideoLinks.Remove(link);
                 await _dbContext.SaveChangesAsync();
+
+                // SignalR ile tüm istemcilere güncelleme bildir
+                await _hubContext.Clients.All.SendAsync("AppDataUpdated");
+
                 TempData["SuccessMessage"] = "Video başarıyla silindi.";
             }
             else
@@ -321,6 +336,9 @@ namespace EPano2.Controllers
             var oldState = link.IsActive;
             link.IsActive = newActiveState;
             await _dbContext.SaveChangesAsync();
+
+            // SignalR ile tüm istemcilere güncelleme bildir
+            await _hubContext.Clients.All.SendAsync("AppDataUpdated");
 
             // Mesajı doğru duruma göre göster
             TempData["SuccessMessage"] = $"Video başarıyla {(newActiveState ? "aktif" : "pasif")} edildi.";
@@ -352,6 +370,9 @@ namespace EPano2.Controllers
             _dbContext.TickerItems.Add(tickerItem);
             await _dbContext.SaveChangesAsync();
 
+            // SignalR ile tüm istemcilere güncelleme bildir
+            await _hubContext.Clients.All.SendAsync("AppDataUpdated");
+
             TempData["SuccessMessage"] = "Ticker yazısı başarıyla eklendi.";
             return RedirectToAction("Dashboard");
         }
@@ -370,6 +391,9 @@ namespace EPano2.Controllers
             tickerItem.IsActive = isActive;
             await _dbContext.SaveChangesAsync();
 
+            // SignalR ile tüm istemcilere güncelleme bildir
+            await _hubContext.Clients.All.SendAsync("AppDataUpdated");
+
             TempData["SuccessMessage"] = "Ticker yazısı başarıyla güncellendi.";
             return RedirectToAction("Dashboard");
         }
@@ -387,6 +411,9 @@ namespace EPano2.Controllers
 
             _dbContext.TickerItems.Remove(tickerItem);
             await _dbContext.SaveChangesAsync();
+
+            // SignalR ile tüm istemcilere güncelleme bildir
+            await _hubContext.Clients.All.SendAsync("AppDataUpdated");
 
             TempData["SuccessMessage"] = "Ticker yazısı başarıyla silindi.";
             return RedirectToAction("Dashboard");
@@ -407,7 +434,7 @@ namespace EPano2.Controllers
         }
 
         [HttpPost]
-        public IActionResult SavePlaylist(Video model)
+        public async Task<IActionResult> SavePlaylist(Video model)
         {
             if (string.IsNullOrWhiteSpace(model.YoutubePlaylistUrl))
             {
@@ -416,6 +443,9 @@ namespace EPano2.Controllers
             }
 
             _videoService.SavePlaylist(model.YoutubePlaylistUrl);
+
+            // SignalR ile tüm istemcilere güncelleme bildir
+            await _hubContext.Clients.All.SendAsync("AppDataUpdated");
 
             TempData["Success"] = "Playlist başarıyla güncellendi!";
             return RedirectToAction("Videos");

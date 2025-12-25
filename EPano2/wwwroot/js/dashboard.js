@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add fade-in animation to main elements
     addFadeInAnimations();
+    
+    // Initialize SignalR connection for real-time updates
+    initializeSignalR();
 });
 
 // Real-time Date and Time Updates
@@ -354,6 +357,12 @@ function initializeIndependentTicker() {
                 });
                 return;
             }
+
+            // Admin yazısı yoksa, API'den gelen metinleri kullan
+            // ÖNEMLİ: Admin yazısından API metinlerine geçerken renk ve stil RESETLENMELİ
+            // Inline style'ları tamamen kaldır (CSS'teki varsayılan değerlere dön)
+            scrollingTextEl.style.removeProperty('color');
+            scrollingTextEl.style.removeProperty('font-weight');
 
             const haberler = (data.haberler || []).filter(x => x.title && x.title.length > 0);
             const duyurular = (data.duyurular || []).filter(x => x.title && x.title.length > 0);
@@ -754,6 +763,191 @@ function logPerformance() {
 // Initialize performance logging
 window.addEventListener('load', logPerformance);
 
+// SignalR Connection for Real-time Updates
+function initializeSignalR() {
+    // Check if SignalR is available
+    if (typeof signalR === 'undefined') {
+        console.warn('SignalR library not loaded. Real-time updates will not work.');
+        return;
+    }
+
+    // Create connection
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/appUpdateHub")
+        .withAutomaticReconnect({
+            nextRetryDelayInMilliseconds: retryContext => {
+                // Exponential backoff: 0s, 2s, 10s, 30s, then every 30s
+                if (retryContext.elapsedMilliseconds < 2000) return 2000;
+                if (retryContext.elapsedMilliseconds < 10000) return 10000;
+                return 30000;
+            }
+        })
+        .build();
+
+    // Handle connection events
+    connection.onreconnecting(() => {
+        console.log('SignalR: Reconnecting...');
+    });
+
+    connection.onreconnected(() => {
+        console.log('SignalR: Reconnected successfully');
+    });
+
+    connection.onclose(() => {
+        console.log('SignalR: Connection closed');
+    });
+
+    // Listen for AppDataUpdated event
+    connection.on("AppDataUpdated", function () {
+        console.log('SignalR: AppDataUpdated event received - Refreshing dashboard data...');
+        
+        // Reload all dashboard data without page refresh
+        reloadDashboardData();
+    });
+
+    // Start connection
+    connection.start()
+        .then(() => {
+            console.log('SignalR: Connected successfully');
+        })
+        .catch(err => {
+            console.error('SignalR: Connection error', err);
+        });
+
+    // Store connection globally for potential manual disconnection
+    window.signalRConnection = connection;
+}
+
+// Reload dashboard data when SignalR event is received
+async function reloadDashboardData() {
+    try {
+        // Reload video configuration
+        await reloadVideoData();
+        
+        // Reload announcements, news, and events
+        await reloadAnnouncementsData();
+        
+        // Reload ticker data
+        await reloadTickerData();
+        
+        console.log('Dashboard data reloaded successfully');
+    } catch (error) {
+        console.error('Error reloading dashboard data:', error);
+    }
+}
+
+// Reload video data from server
+async function reloadVideoData() {
+    try {
+        const response = await fetch('/Dashboard/GetVideoConfig');
+        const data = await response.json();
+        
+        // Update global video paths
+        window.videoFilePaths = data.videoFilePaths || [];
+        window.defaultVideoFilePath = data.defaultVideoFilePath || null;
+        
+        // Re-initialize video player with new data
+        initializeVideoPlayer();
+    } catch (error) {
+        console.error('Error reloading video data:', error);
+    }
+}
+
+// Reload announcements, news, and events data
+async function reloadAnnouncementsData() {
+    try {
+        const response = await fetch('/Dashboard/GetAnnouncementsData');
+        const data = await response.json();
+        
+        // Update announcements carousel with new data
+        // We need to rebuild the carousel DOM with new data
+        updateAnnouncementsCarousel(data.announcements || [], data.news || [], data.etkinlikler || []);
+    } catch (error) {
+        console.error('Error reloading announcements data:', error);
+    }
+}
+
+// Update announcements carousel with new data
+function updateAnnouncementsCarousel(announcements, news, etkinlikler) {
+    const carousel = document.querySelector('.announcements-carousel');
+    if (!carousel) return;
+    
+    // Clear existing slides
+    carousel.innerHTML = '';
+    
+    // Create slides from new data
+    const allItems = [];
+    
+    // Add news items
+    news.forEach(item => {
+        allItems.push({
+            haber: true,
+            etkinlik: false,
+            title: item.title || '',
+            content: item.content || '',
+            posterImageUrl: item.posterImageUrl || ''
+        });
+    });
+    
+    // Add announcements
+    announcements.forEach(item => {
+        allItems.push({
+            haber: false,
+            etkinlik: false,
+            title: item.title || '',
+            content: item.content || '',
+            posterImageUrl: item.posterImageUrl || ''
+        });
+    });
+    
+    // Add events
+    etkinlikler.forEach(item => {
+        allItems.push({
+            haber: false,
+            etkinlik: true,
+            title: item.title || '',
+            content: item.content || '',
+            posterImageUrl: item.posterImageUrl || ''
+        });
+    });
+    
+    // Create slides
+    allItems.forEach((item, index) => {
+        const slide = document.createElement('div');
+        slide.className = 'announcement-slide';
+        if (index === 0) {
+            slide.classList.add('active');
+        }
+        
+        const bgImage = item.posterImageUrl ? `background-image:url('${item.posterImageUrl}')` : '';
+        slide.setAttribute('style', bgImage);
+        slide.setAttribute('data-haber', item.haber.toString());
+        slide.setAttribute('data-etkinlik', item.etkinlik ? 'true' : 'false');
+        
+        slide.innerHTML = `
+            <div class="announcement-overlay">
+                <h3 class="announcement-title">${item.title}</h3>
+                ${item.content ? `<p class="announcement-content">${item.content}</p>` : ''}
+            </div>
+        `;
+        
+        carousel.appendChild(slide);
+    });
+    
+    // Re-initialize carousel with new slides
+    initializeAnnouncementsCarousel();
+}
+
+// Reload ticker data
+async function reloadTickerData() {
+    try {
+        // Re-initialize ticker which fetches from API
+        initializeIndependentTicker();
+    } catch (error) {
+        console.error('Error reloading ticker data:', error);
+    }
+}
+
 // Export functions for global access
 window.Dashboard = {
     switchToNextVideo: function() {
@@ -773,5 +967,6 @@ window.Dashboard = {
     showModal,
     closeModal,
     saveItem,
-    deleteItem
+    deleteItem,
+    reloadDashboardData // Export for manual refresh if needed
 };
