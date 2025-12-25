@@ -278,5 +278,54 @@ namespace EPano2.Controllers
             
             return Json(result);
         }
+
+        // API endpoint for video configuration (for SignalR real-time updates)
+        [HttpGet]
+        public async Task<IActionResult> GetVideoConfig()
+        {
+            var videoConfig = await _dbContext.VideoConfigs
+                .Include(v => v.ExtraVideoLinks)
+                .FirstOrDefaultAsync();
+
+            var videoFilePaths = new List<string>();
+            string? defaultVideoFilePath = null;
+
+            if (videoConfig != null)
+            {
+                defaultVideoFilePath = videoConfig.DefaultVideoFilePath;
+
+                var activeExtras = videoConfig.ExtraVideoLinks
+                    .Where(x => x.IsActive && !string.IsNullOrWhiteSpace(x.FilePath))
+                    .OrderBy(x => x.DisplayOrder)
+                    .Select(x => x.FilePath!)
+                    .ToList();
+
+                if (activeExtras.Any())
+                {
+                    videoFilePaths = activeExtras;
+                }
+            }
+
+            return Json(new
+            {
+                videoFilePaths = videoFilePaths,
+                defaultVideoFilePath = defaultVideoFilePath
+            });
+        }
+
+        // API endpoint for announcements data (for SignalR real-time updates)
+        [HttpGet]
+        public async Task<IActionResult> GetAnnouncementsData()
+        {
+            var (announcements, news) = await GetAnnouncementsAndNews();
+            var etkinlikler = await GetEtkinlikler();
+
+            return Json(new
+            {
+                announcements = announcements,
+                news = news,
+                etkinlikler = etkinlikler
+            });
+        }
     }
 }

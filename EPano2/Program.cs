@@ -28,7 +28,10 @@ builder.Services.Configure<EPano2.Models.Options.OpenWeatherOptions>(
 builder.Services.AddScoped<EPano2.Interfaces.IWeatherService, EPano2.Services.WeatherService>();
 
 builder.Services.AddHttpClient<IAnnouncementService, AnnouncementService>();
-builder.Services.AddSingleton<IVideoService, VideoService>(); //scope e �evir db ba�lay�nca
+builder.Services.AddSingleton<IVideoService, VideoService>(); //scope eevir db balaynca
+
+// SignalR
+builder.Services.AddSignalR();
 
 // Cookie Authentication (form tabanlı login için)
 builder.Services
@@ -63,6 +66,9 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// SignalR Hub endpoint
+app.MapHub<EPano2.Hubs.AppUpdateHub>("/appUpdateHub");
 
 app.MapControllerRoute(
     name: "default",
